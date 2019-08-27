@@ -1,3 +1,4 @@
+// TO DO : refactor. class may not be necessary
 class Grid {
   static List<int> gridX = List<int>.generate(20, (i) => i, growable: false);
 
@@ -9,8 +10,8 @@ class Grid {
 
   static List<GridCoordinate> _generateGrid() {
     List<GridCoordinate> list = [];
-    for (var i = 0; i < gridX.length; i++) {
-      for (var j = 0; j < gridY.length; j++) {
+    for (var j = 0; j < gridY.length; j++) {
+      for (var i = 0; i < gridX.length; i++) {
         list.add(GridCoordinate(x: gridX[i], y: gridY[j]));
       }
     }
@@ -20,6 +21,7 @@ class Grid {
   List<GridCoordinate> grid = _generateGrid();
 }
 
+// TO DO : replace with tuple
 class GridCoordinate {
   int x;
   int y;

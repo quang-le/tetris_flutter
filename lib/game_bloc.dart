@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:frideos_core/frideos_core.dart';
 import 'package:tetris/board/grid.dart';
-import 'package:frideos/frideos.dart';
 import 'package:tetris/randomizer.dart';
 import 'package:tetris/tetriminos/tetriminos.dart';
 
@@ -31,7 +30,9 @@ class GameBloc {
   var _gridStream = StreamedValue<Map<GridCoordinate, bool>>();
   var _landed = StreamedValue<bool>()..inStream(false);
   var _isLocking = StreamedValue<bool>()..inStream(false);
-  var _tetrimino = StreamedValue<List<GridCoordinate>>()..inStream([]);
+  var _tetrimino = StreamedValue<List<GridCoordinate>>()
+    ..inStream(<GridCoordinate>[]);
+  var _tetriminoType = StreamedValue<BlockType>();
   var _goLeft = StreamedValue<bool>()..inStream(false);
   var _goRight = StreamedValue<bool>()..inStream(false);
   var _gameOver = StreamedValue<bool>()..inStream(false);
@@ -39,18 +40,13 @@ class GameBloc {
   var _blockType = StreamedValue<BlockType>();
 
   Stream<Map<GridCoordinate, bool>> get gridState => _gridStream.outStream;
+  Stream<BlockType> get tetriminoType => _tetriminoType.outStream;
 
   Stream<bool> get gameOver => _gameOver.outStream;
 
   void startGame() {
     _gameStart.inStream(true);
-  }
-
-  void updateGridState(GridCoordinate cell) {
-    print('_gridState[cell]: ${_gridState[cell]}');
-    _gridState[cell] = !_gridState[cell];
-    print('_gridState[cell]: ${_gridState[cell]}');
-    _gridStream.inStream(_gridState);
+    return;
   }
 
   //assign status false to each cell of the grid and sink it into the stream
@@ -58,9 +54,22 @@ class GameBloc {
 
   Map<GridCoordinate, bool> _makeGridState(
       Map<GridCoordinate, bool> gridState) {
-    grid.grid.forEach((cell) => gridState[cell] = false);
+    grid.grid.forEach((cell) {
+      gridState[cell] = false;
+      print(cell);
+      print(gridState[GridCoordinate(x: 0, y: 0)]);
+    });
     _gridStream.inStream(gridState);
+    print(gridState.isEmpty);
     return gridState;
+  }
+
+  void updateGridState(GridCoordinate cell) {
+    print('_gridState[cell]: ${_gridState[cell]}');
+    _gridState[cell] = !_gridState[cell];
+    print('_gridState[cell]: ${_gridState[cell]}');
+    _gridStream.inStream(_gridState);
+    return;
   }
 
   //make the tetrimino fall
@@ -68,22 +77,25 @@ class GameBloc {
     print('falling');
     _tetrimino.value.forEach((square) {
       _gridStream.value[square] = false;
-      square.y += 1;
+      square.y -= 1;
       _gridStream.value[square] = true;
     });
     print('falling done');
+    return;
   }
 
   void goLeft() {
     _goLeft.inStream(true);
     _goLeft.inStream(false);
     checkContactBelow();
+    return;
   }
 
   void goRight() {
     _goRight.inStream(true);
     _goRight.inStream(false);
     checkContactBelow();
+    return;
   }
 
   //check if the piece is in contact with the bottom, or the puzzle
@@ -93,6 +105,7 @@ class GameBloc {
       GridCoordinate nextBlock = GridCoordinate(x: block.x, y: block.y - 1);
       if (block.y == 0) {
         print('reached bottom');
+        // TO DO: test without ternary
         !_isLocking.value ? _isLocking.inStream(true) : null;
         return;
       } else if (nextBlock.y == 21 && _gridStream.value[nextBlock] == true) {
@@ -100,12 +113,14 @@ class GameBloc {
         return;
       } else if (_gridStream.value[nextBlock] == true &&
           _tetrimino.value.contains(nextBlock) == false) {
+        // TO DO: test without ternary
         !_isLocking.value ? _isLocking.inStream(true) : null;
         print('found block underneath');
         return;
       }
       _isLocking.inStream(false);
     });
+    return;
   }
 
   void addPiece() {
@@ -170,6 +185,7 @@ class GameBloc {
 
     _tetrimino.value.forEach((block) => _gridState[block] = true);
     print('added new piece');
+    return;
   }
 
   void hasLanded() {
@@ -178,6 +194,7 @@ class GameBloc {
     _isLocking.inStream(false);
     _landed.inStream(false);
     print('piece landed');
+    return;
   }
 
   void gameLoop() {
@@ -192,5 +209,18 @@ class GameBloc {
         }
       }
     }
+  }
+
+  void dispose() {
+    gameStart.cancel();
+    _gridStream.dispose();
+    _landed.dispose();
+    _isLocking.dispose();
+    _tetrimino.dispose();
+    _blockType.dispose();
+    _goLeft.dispose();
+    _goRight.dispose();
+    _gameStart.dispose();
+    _gameOver.dispose();
   }
 }
