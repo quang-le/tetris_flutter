@@ -27,11 +27,10 @@ class GameBloc {
   var stopwatch = Stopwatch();
   var randomizer = Randomizer();
   StreamSubscription gameStart;
-  var _gridStream = StreamedValue<Map<GridCoordinate, bool>>();
+  var _gridStream = StreamedValue<Map<List<int>, bool>>();
   var _landed = StreamedValue<bool>()..inStream(false);
   var _isLocking = StreamedValue<bool>()..inStream(false);
-  var _tetrimino = StreamedValue<List<GridCoordinate>>()
-    ..inStream(<GridCoordinate>[]);
+  var _tetrimino = StreamedValue<List<List<int>>>()..inStream(<List<int>>[]);
   var _tetriminoType = StreamedValue<BlockType>();
   var _goLeft = StreamedValue<bool>()..inStream(false);
   var _goRight = StreamedValue<bool>()..inStream(false);
@@ -39,7 +38,7 @@ class GameBloc {
   var _gameStart = StreamedValue<bool>()..inStream(false);
   var _blockType = StreamedValue<BlockType>();
 
-  Stream<Map<GridCoordinate, bool>> get gridState => _gridStream.outStream;
+  Stream<Map<List<int>, bool>> get gridState => _gridStream.outStream;
   Stream<BlockType> get tetriminoType => _tetriminoType.outStream;
 
   Stream<bool> get gameOver => _gameOver.outStream;
@@ -50,21 +49,21 @@ class GameBloc {
   }
 
   //assign status false to each cell of the grid and sink it into the stream
-  Map<GridCoordinate, bool> _gridState = {};
+  Map<List<int>, bool> _gridState = {};
 
-  Map<GridCoordinate, bool> _makeGridState(
-      Map<GridCoordinate, bool> gridState) {
+  // TO DO : refactor this func to call it with params from widget
+  Map<List<int>, bool> _makeGridState(Map<List<int>, bool> gridState) {
     grid.grid.forEach((cell) {
       gridState[cell] = false;
       print(cell);
-      print(gridState[GridCoordinate(x: 0, y: 0)]);
+      print(gridState[[0, 0]]);
     });
     _gridStream.inStream(gridState);
     print(gridState.isEmpty);
     return gridState;
   }
 
-  void updateGridState(GridCoordinate cell) {
+  void updateGridState(List<int> cell) {
     print('_gridState[cell]: ${_gridState[cell]}');
     _gridState[cell] = !_gridState[cell];
     print('_gridState[cell]: ${_gridState[cell]}');
@@ -77,7 +76,7 @@ class GameBloc {
     print('falling');
     _tetrimino.value.forEach((square) {
       _gridStream.value[square] = false;
-      square.y -= 1;
+      square[1] -= 1;
       _gridStream.value[square] = true;
     });
     print('falling done');
@@ -102,13 +101,13 @@ class GameBloc {
   void checkContactBelow() {
     print('checking for contact');
     _tetrimino.value.forEach((block) {
-      GridCoordinate nextBlock = GridCoordinate(x: block.x, y: block.y - 1);
-      if (block.y == 0) {
+      List<int> nextBlock = [block[0], block[1] - 1];
+      if (block[1] == 0) {
         print('reached bottom');
         // TO DO: test without ternary
         !_isLocking.value ? _isLocking.inStream(true) : null;
         return;
-      } else if (nextBlock.y == 21 && _gridStream.value[nextBlock] == true) {
+      } else if (nextBlock[1] == 21 && _gridStream.value[nextBlock] == true) {
         _gameOver.inStream(true);
         return;
       } else if (_gridStream.value[nextBlock] == true &&
@@ -127,58 +126,58 @@ class GameBloc {
     switch (_blockType.value) {
       case BlockType.I:
         _tetrimino.inStream([
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 24, x: 6),
+          [3, 24],
+          [4, 24],
+          [5, 24],
+          [6, 24],
         ]);
         break;
       case BlockType.J:
         _tetrimino.inStream([
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 25, x: 5),
+          [3, 24],
+          [4, 24],
+          [5, 24],
+          [5, 25],
         ]);
         break;
       case BlockType.L:
         _tetrimino.inStream([
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 25, x: 3),
+          [3, 24],
+          [4, 24],
+          [5, 24],
+          [3, 25],
         ]);
         break;
       case BlockType.S:
         _tetrimino.inStream([
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 25, x: 5),
-          GridCoordinate(y: 25, x: 6),
+          [3, 24],
+          [4, 24],
+          [5, 25],
+          [6, 25],
         ]);
         break;
       case BlockType.Z:
         _tetrimino.inStream([
-          GridCoordinate(y: 25, x: 3),
-          GridCoordinate(y: 25, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 24, x: 6),
+          [3, 25],
+          [4, 25],
+          [5, 24],
+          [6, 24],
         ]);
         break;
       case BlockType.O:
         _tetrimino.inStream([
-          GridCoordinate(y: 25, x: 5),
-          GridCoordinate(y: 25, x: 6),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 24, x: 6),
+          [5, 25],
+          [6, 25],
+          [5, 24],
+          [6, 24],
         ]);
         break;
       case BlockType.T:
         _tetrimino.inStream([
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 25, x: 4),
+          [3, 24],
+          [4, 24],
+          [5, 24],
+          [4, 25],
         ]);
         break;
     }

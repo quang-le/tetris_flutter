@@ -19,9 +19,12 @@ class Board extends StatefulWidget {
 
 class _BoardState extends State<Board> {
   GameBloc bloc;
+  // TO DO : add int rows & int columns
   @override
   void didChangeDependencies() {
+    // TO DO: use Boelens Provider or Provider library
     bloc = Provider.of(context).gameBloc;
+    // TO DO : call grid generating func and pass rows & columns
     super.didChangeDependencies();
   }
 
@@ -55,7 +58,7 @@ class _BoardState extends State<Board> {
     List<Widget> result = [];
     for (var i = 0; i < length; i++) {
       var cell = GridCell(
-        coordinates: GridCoordinate(x: i, y: yCoordinate),
+        coordinates: [i, yCoordinate],
         size: cellSize,
         bloc: bloc,
       );

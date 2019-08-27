@@ -10,7 +10,7 @@ class Tetriminos extends StatefulWidget {
 }
 
 class _TetriminosState extends State<Tetriminos> {
-  List<GridCoordinate> gridCoordinates;
+  List<List<int>> gridCoordinates;
   @override
   void initState() {
     // TODO: implement initState
@@ -18,58 +18,58 @@ class _TetriminosState extends State<Tetriminos> {
     switch (widget.blockType) {
       case BlockType.I:
         gridCoordinates = [
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 24, x: 6),
+          [24, 3],
+          [24, 4],
+          [24, 5],
+          [24, 6],
         ];
         break;
       case BlockType.J:
         gridCoordinates = [
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 25, x: 5),
+          [24, 3],
+          [24, 4],
+          [24, 5],
+          [25, 5],
         ];
         break;
       case BlockType.L:
         gridCoordinates = [
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 25, x: 3),
+          [24, 3],
+          [24, 4],
+          [24, 5],
+          [25, 3],
         ];
         break;
       case BlockType.S:
         gridCoordinates = [
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 25, x: 5),
-          GridCoordinate(y: 25, x: 6),
+          [24, 3],
+          [24, 4],
+          [25, 5],
+          [25, 6],
         ];
         break;
       case BlockType.Z:
         gridCoordinates = [
-          GridCoordinate(y: 25, x: 3),
-          GridCoordinate(y: 25, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 24, x: 6),
+          [25, 3],
+          [25, 4],
+          [24, 5],
+          [24, 6],
         ];
         break;
       case BlockType.O:
         gridCoordinates = [
-          GridCoordinate(y: 25, x: 5),
-          GridCoordinate(y: 25, x: 6),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 24, x: 6),
+          [25, 5],
+          [25, 6],
+          [24, 5],
+          [24, 6],
         ];
         break;
       case BlockType.T:
         gridCoordinates = [
-          GridCoordinate(y: 24, x: 3),
-          GridCoordinate(y: 24, x: 4),
-          GridCoordinate(y: 24, x: 5),
-          GridCoordinate(y: 25, x: 4),
+          [24, 3],
+          [24, 4],
+          [24, 5],
+          [25, 4],
         ];
         break;
     }

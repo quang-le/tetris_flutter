@@ -6,7 +6,7 @@ import 'package:frideos/frideos.dart';
 class GridCell extends StatefulWidget {
   final double size;
   final GameBloc bloc;
-  final GridCoordinate coordinates;
+  final List<int> coordinates;
 
   const GridCell(
       {Key key, @required this.size, @required this.bloc, this.coordinates})
@@ -28,9 +28,9 @@ class _GridCellState extends State<GridCell> {
           return Container(
             height: widget.size,
             width: widget.size,
-            // color:
-            //   snapshot.data[widget.coordinates] ? Colors.green : Colors.red,
-            child: Text('Bite'),
+            color:
+                snapshot.data[widget.coordinates] ? Colors.green : Colors.red,
+            child: Text(snapshot.data[widget.coordinates][0].toString()),
           );
         });
   }

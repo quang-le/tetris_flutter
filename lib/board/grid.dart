@@ -8,32 +8,26 @@ class Grid {
     xAxis.forEach((x) => yAxis.forEach((y) => GridCoordinate(x: x, y: y)));
   }*/
 
-  static List<GridCoordinate> _generateGrid() {
-    List<GridCoordinate> list = [];
+  static List<List<int>> _generateGrid() {
+    List<List<int>> list = [];
     for (var j = 0; j < gridY.length; j++) {
       for (var i = 0; i < gridX.length; i++) {
-        list.add(GridCoordinate(x: gridX[i], y: gridY[j]));
+        list.add([gridX[i], gridY[j]]);
       }
     }
     return list;
   }
 
-  List<GridCoordinate> grid = _generateGrid();
+  // TO DO: refactor to return Map<int,Cell>
+  List<List<int>> grid = _generateGrid();
 }
 
-// TO DO : replace with tuple
-class GridCoordinate {
-  int x;
-  int y;
+// TO DO : create Cell class
 
-  GridCoordinate({this.x, this.y});
+class Cell {
+  final int index;
+  final List<int> coordinates;
+  bool status = false;
 
-  GridCoordinate.fromJson(Map<String, dynamic> json) {
-    x = json['x'];
-    y = json['y'];
-  }
-  @override
-  String toString() {
-    return '(x:$x,y:$y)';
-  }
+  Cell(this.index, this.coordinates);
 }
