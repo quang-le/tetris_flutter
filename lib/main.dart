@@ -9,6 +9,6 @@ void main() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   Grid grid = Grid();
-  GameBloc gameBloc = GameBloc(grid: grid);
+  GameBloc gameBloc = GameBloc();
   runApp(Provider(grid: grid, gameBloc: gameBloc, child: App()));
 }

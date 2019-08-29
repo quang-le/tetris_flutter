@@ -19,31 +19,28 @@ class Board extends StatefulWidget {
 
 class _BoardState extends State<Board> {
   GameBloc bloc;
-  // TO DO : add int rows & int columns
+
+  // TODO : add int rows & int columns
   @override
-  void didChangeDependencies() {
-    // TO DO: use Boelens Provider or Provider library
+  void initState() {
+    // TODO: use Boelens Provider or Provider library
     bloc = Provider.of(context).gameBloc;
-    // TO DO : call grid generating func and pass rows & columns
-    super.didChangeDependencies();
+    bloc.initializeGrid(10, 24);
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Container(
-          height: widget.height,
-          width: widget.width,
-          child: Column(
-            children: _gameGrid(context, 15, 10),
-          ),
-        ),
+    return Container(
+      height: widget.height,
+      width: widget.width,
+      child: Column(
+        children: _gameGrid(context, 10, 20),
       ),
     );
   }
 
-  List<Widget> _gameGrid(BuildContext context, int height, int width) {
+  List<Widget> _gameGrid(BuildContext context, int width, int height) {
     double cellSize = widget.width / width;
     List<Widget> result = [];
     for (var i = height; i >= 0; i--) {

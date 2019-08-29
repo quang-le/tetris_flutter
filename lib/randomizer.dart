@@ -1,5 +1,6 @@
 import 'dart:math';
-import 'package:tetris/tetriminos/tetriminos.dart';
+
+import 'package:tetris/game_bloc.dart';
 
 class Randomizer {
   int _counter = 0;
@@ -7,9 +8,12 @@ class Randomizer {
     BlockType nextPiece;
     Random random = Random();
     int bag = random.nextInt(6 - _counter);
+    print('bag: $bag');
 
     if (_counter <= 6) {
       _counter++;
+    } else {
+      _counter = 0;
     }
 
     switch (bag) {

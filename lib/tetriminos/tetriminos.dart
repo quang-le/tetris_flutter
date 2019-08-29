@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tetris/board/grid.dart';
+import 'package:tetris/game_bloc.dart';
 
 class Tetriminos extends StatefulWidget {
   final BlockType blockType;
@@ -72,6 +73,8 @@ class _TetriminosState extends State<Tetriminos> {
           [25, 4],
         ];
         break;
+      default:
+        break;
     }
   }
 
@@ -80,5 +83,3 @@ class _TetriminosState extends State<Tetriminos> {
     return Container();
   }
 }
-
-enum BlockType { I, J, L, T, S, Z, O }

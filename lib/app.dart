@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tetris/board/board.dart';
 import 'package:tetris/board/grid.dart';
-import 'package:tetris/home_page.dart';
+import 'package:tetris/screens/game_screen.dart';
+import 'package:tetris/screens/home_page.dart';
 
 class App extends StatefulWidget {
   // This widget is the root of your application.
@@ -16,11 +17,7 @@ class _AppState extends State<App> {
       title: 'Flutter Tetris',
       theme: ThemeData.dark(),
       //home: HomePage(),
-      home: Builder(builder: (builderContext) {
-        var width = MediaQuery.of(builderContext).size.width;
-        var height = MediaQuery.of(builderContext).size.height;
-        return Board(width: width, height: height);
-      }),
+      home: GameScreen(),
     );
   }
 }

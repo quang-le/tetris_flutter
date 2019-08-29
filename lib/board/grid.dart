@@ -1,4 +1,6 @@
 // TO DO : refactor. class may not be necessary
+import 'package:flutter/material.dart';
+
 class Grid {
   static List<int> gridX = List<int>.generate(20, (i) => i, growable: false);
 
@@ -29,5 +31,7 @@ class Cell {
   final List<int> coordinates;
   bool status = false;
 
-  Cell(this.index, this.coordinates);
+  Cell({@required this.index, @required this.coordinates, this.status})
+      : assert(index != null),
+        assert(coordinates != null);
 }
