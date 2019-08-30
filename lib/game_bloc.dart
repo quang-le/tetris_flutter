@@ -76,17 +76,30 @@ class GameBloc {
     return grid;
   }
 
-  //make the tetrimino fall
+  // TODO prevent erasing cells that are part of the new position but keep erasing the others
   void fall() {
-    var gridClone = Map<List<int>, BlockType>.from(_grid.value);
     print('falling');
+    const compareList = IterableEquality();
+    var oldTetrimino = List<List<int>>.from(_tetrimino.value);
+    List<List<int>> cellsToClear = [];
     _tetrimino.value.forEach((cell) {
       print('cell: $cell');
       List<int> newCell = [cell[0], cell[1] - 1];
-      // _updateCell(cell, BlockType.empty, gridClone);
-      // _updateCell(newCell, _blockType.value, gridClone);
+      _updateCell(newCell, _blockType.value, _grid.value);
+      // TODO investigate if stream updated immediately
       _tetrimino.replace(cell, newCell);
       print('cell updated: $newCell');
+    });
+    oldTetrimino.forEach((oldCell) {
+      var matchingCell = _tetrimino.value.firstWhere(
+          (newCell) => compareList.equals(newCell, oldCell),
+          orElse: () => []);
+      if (matchingCell.isEmpty) {
+        cellsToClear.add(matchingCell);
+      }
+    });
+    cellsToClear.forEach((cellToClear) {
+      _updateCell(cellToClear, BlockType.empty, _grid.value);
     });
     print('falling done');
     return;
@@ -106,7 +119,6 @@ class GameBloc {
     return;
   }
 
-  // TODO Fix contact detection: bottom finding ok
   void checkContactBelow() {
     print('checking for contact');
     var reachBottom =
@@ -147,37 +159,8 @@ class GameBloc {
     print('continue to fall');
     _isLocking.value = false;
     return;
-
-    /*_tetrimino.value.forEach((cell) {
-      List<int> nextBlock = [cell[0], cell[1] - 1];
-      BlockType nextBlockType = findCell(nextBlock, _grid.value);
-      if (cell[1] == 0) {
-        print('reached bottom');
-        // TODO: test without ternary
-        if (!_isLocking.value) {
-          _isLocking.value = true;
-          print('initiate lock');
-        }
-        return;
-      } else if (nextBlock[1] == 21 && nextBlockType == BlockType.locked) {
-        print('reached top');
-        _gameOver.value = true;
-        return;
-      } else if (nextBlockType == BlockType.locked &&
-          _tetrimino.value.contains(nextBlock) == false) {
-        if (!_isLocking.value) {
-          _isLocking.value = true;
-        }
-        print('found block underneath');
-        return;
-      } else {
-        _isLocking.value = false;
-      }
-    });
-    return;*/
   }
 
-  // TODO : make this function work
   void addPiece() {
     switch (_blockType.value) {
       case BlockType.I:
@@ -208,16 +191,16 @@ class GameBloc {
         _tetrimino.value = [
           [3, 24],
           [4, 24],
+          [4, 25],
           [5, 25],
-          [6, 25],
         ];
         break;
       case BlockType.Z:
         _tetrimino.value = [
           [3, 25],
           [4, 25],
+          [4, 24],
           [5, 24],
-          [6, 24],
         ];
         break;
       case BlockType.O:

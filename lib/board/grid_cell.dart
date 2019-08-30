@@ -1,4 +1,6 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:tetris/board/grid.dart';
 import 'package:tetris/game_bloc.dart';
 import 'package:frideos/frideos.dart';
 
@@ -21,69 +23,56 @@ class _GridCellState extends State<GridCell> {
   @override
   Widget build(BuildContext context) {
     return StreamedWidget(
-        noDataChild: Container(color: Colors.pink),
-        stream: widget.bloc.tetrimino,
-        builder: (context, tetriminoSnapshot) {
-          return StreamedWidget(
-              stream: widget.bloc.grid,
-              builder: (context, gridSnapshot) {
-                var grid = gridSnapshot.data;
-                var coordinates = widget.coordinates;
-                var onGrid = widget.bloc.findCell(coordinates, grid);
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 0.25),
-                    color:
-                        onGrid == BlockType.locked ? Colors.green : Colors.red,
-                    //color: _determineCellColor(
-                    //    type, tetriminoPosition, grid, coordinates),
-                  ),
-                  height: widget.size,
-                  width: widget.size,
-                  child: Text(widget.coordinates.toString()),
-                );
-              });
+        stream: widget.bloc.grid,
+        builder: (context, gridSnapshot) {
+          var grid = gridSnapshot.data;
+          var coordinates = widget.coordinates;
+          return Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.white, width: 0.25),
+              //color:
+              //    onGrid == BlockType.locked ? Colors.green : Colors.red,
+              color: _determineCellColor(grid, coordinates),
+            ),
+            height: widget.size,
+            width: widget.size,
+          );
         });
   }
 
-  // TODO uncomment when bloc is fixed
-  /*Color _determineCellColor(BlockType type, List<List<int>> tetriminoPosition,
-      Map<int, Cell> grid, List<int> coordinates) {
-    const _comparePosition = IterableEquality();
-    bool _isTetrimino = false;
-    Cell onGrid = widget.bloc.findCell(coordinates, grid);
-    tetriminoPosition.forEach((tetriminoCell) {
-      if (_comparePosition.equals(coordinates, tetriminoCell)) {
-        _isTetrimino = true;
-      }
-    });
-    if (_isTetrimino) {
-      switch (type) {
-        case BlockType.O:
-          return Colors.yellow;
-          break;
-        case BlockType.I:
-          return Colors.lightBlueAccent;
-          break;
-        case BlockType.J:
-          return Colors.blue;
-          break;
-        case BlockType.L:
-          return Colors.orangeAccent;
-          break;
-        case BlockType.S:
-          return Colors.green;
-          break;
-        case BlockType.Z:
-          return Colors.redAccent;
-          break;
-        case BlockType.T:
-          return Colors.deepPurpleAccent;
-          break;
-      }
-    } else if (!_isTetrimino && onGrid.status) {
-      return Colors.brown;
+  Color _determineCellColor(
+      Map<List<int>, BlockType> grid, List<int> coordinates) {
+    Color color;
+    BlockType cell = widget.bloc.findCell(coordinates, grid);
+    switch (cell) {
+      case BlockType.O:
+        color = Colors.yellow;
+        break;
+      case BlockType.I:
+        color = Colors.lightBlueAccent;
+        break;
+      case BlockType.J:
+        color = Colors.blue;
+        break;
+      case BlockType.L:
+        color = Colors.orangeAccent;
+        break;
+      case BlockType.S:
+        color = Colors.green;
+        break;
+      case BlockType.Z:
+        color = Colors.redAccent;
+        break;
+      case BlockType.T:
+        color = Colors.deepPurpleAccent;
+        break;
+      case BlockType.empty:
+        color = Colors.black54;
+        break;
+      case BlockType.locked:
+        color = Colors.grey;
+        break;
     }
-    return Colors.white;
-  }*/
+    return color;
+  }
 }
