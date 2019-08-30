@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tetris/board/grid.dart';
 import 'package:tetris/board/grid_cell.dart';
 import 'package:tetris/game_bloc.dart';
 import 'package:tetris/provider.dart';

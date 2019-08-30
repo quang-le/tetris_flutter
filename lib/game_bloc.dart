@@ -37,12 +37,11 @@ class GameBloc {
 
   Stream<Map<List<int>, BlockType>> get grid => _grid.outStream;
   Stream<List<List<int>>> get tetrimino => _tetrimino.outStream;
-  Stream<BlockType> get tetriminoType => _blockType.outStream;
 
   Stream<bool> get gameOver => _gameOver.outStream;
 
   void startGame() {
-    _gameStart.inStream(true);
+    _gameStart.value = true;
     return;
   }
 
@@ -75,7 +74,6 @@ class GameBloc {
     return grid;
   }
 
-  // TODO fix falling function
   //make the tetrimino fall
   void fall() {
     var gridClone = Map<List<int>, BlockType>.from(_grid.value);
@@ -93,20 +91,20 @@ class GameBloc {
   }
 
   void goLeft() {
-    _goLeft.inStream(true);
-    _goLeft.inStream(false);
+    _goLeft.value = true;
+    _goLeft.value = false;
     checkContactBelow();
     return;
   }
 
   void goRight() {
-    _goRight.inStream(true);
-    _goRight.inStream(false);
+    _goRight.value = true;
+    _goRight.value = false;
     checkContactBelow();
     return;
   }
 
-  // TODO Fix contact detection
+  // TODO Fix contact detection: bottom finding ok
   void checkContactBelow() {
     print('checking for contact');
     _tetrimino.value.forEach((cell) {
@@ -114,16 +112,19 @@ class GameBloc {
       BlockType nextBlockType = findCell(nextBlock, _grid.value);
       if (cell[1] == 0) {
         print('reached bottom');
-        // TO DO: test without ternary
-        !_isLocking.value ? _isLocking.value = true : null;
+        // TODO: test without ternary
+        if (!_isLocking.value) {
+          _isLocking.value = true;
+        }
         return;
       } else if (nextBlock[1] == 21 && nextBlockType == BlockType.locked) {
         _gameOver.value = true;
         return;
       } else if (nextBlockType == BlockType.locked &&
           _tetrimino.value.contains(nextBlock) == false) {
-        // TO DO: test without ternary
-        !_isLocking.value ? _isLocking.value = true : null;
+        if (!_isLocking.value) {
+          _isLocking.value = true;
+        }
         print('found block underneath');
         return;
       }
@@ -213,7 +214,7 @@ class GameBloc {
         blockType = type;
       }
     });
-    _grid.inStream(clonedGrid);
+    _grid.value = clonedGrid;
     return;
   }
 
@@ -240,7 +241,22 @@ class GameBloc {
     return;
   }
 
-  // TODO double check randomizer
+// TODO get width and height from widget i.o. hard coded in function
+  void clearLines(Map<List<int>, BlockType> grid) {
+    Map<List<int>, BlockType> clonedGrid = Map<List<int>, BlockType>.from(grid);
+    List<Map<List<int>, BlockType>> fullLines = [];
+    for (var i = 0; i < 10; i++) {
+      Map<List<int>, BlockType> line = {};
+      clonedGrid.forEach((coordinates, type) {
+        if (coordinates[0] == i) {
+          line.putIfAbsent(coordinates, () => type);
+        }
+      });
+      // TODO check if line is full then add to fullLines
+    }
+    //TODO clear full lines from grid
+  }
+
   void gameLoop() {
     while (_gameOver.value == false) {
       var newBlock = randomizer.choosePiece();
@@ -249,11 +265,21 @@ class GameBloc {
       addPiece();
       while (_landed.value == false) {
         checkContactBelow();
-        if (_isLocking.value == false) {
+        if (_isLocking.value && stopwatch.elapsedMilliseconds > 2000) {
+          _landed.value = true;
+        } else if (_isLocking.value == false) {
           Future.delayed(Duration(milliseconds: 600));
           fall();
         }
       }
+      // reinitialize control values if block landed
+      if (_landed.value) {
+        _isLocking.value = false;
+        _tetrimino.value.forEach(
+            (cell) => _updateCell(cell, BlockType.locked, _grid.value));
+        _tetrimino.value = [];
+      }
+      _landed.value = false;
     }
   }
 
