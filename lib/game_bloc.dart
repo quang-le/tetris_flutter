@@ -10,6 +10,7 @@ class GameBloc {
     _isLocking.stream.listen((locking) {
       if (locking) {
         stopwatch.start();
+        print('stopwatch started');
       } else if (!locking) {
         stopwatch.stop();
         stopwatch.reset();
@@ -59,6 +60,7 @@ class GameBloc {
     for (var j = 0; j < gridY.length; j++) {
       for (var i = 0; i < gridX.length; i++) {
         coordinates.add([gridX[i], gridY[j]]);
+        //print('coordinates[${[gridX[i], gridY[j]]}]: ${[gridX[i], gridY[j]]}');
       }
     }
     return coordinates;
@@ -69,7 +71,7 @@ class GameBloc {
     for (var i = 0; i < gridCoordinates.length; i++) {
       List<int> coordinates = gridCoordinates[i];
       grid.putIfAbsent(coordinates, () => BlockType.empty);
-      print('grid[$coordinates]: ${grid[coordinates]}');
+      // print('grid[$coordinates]: ${grid[coordinates]}');
     }
     return grid;
   }
@@ -81,10 +83,10 @@ class GameBloc {
     _tetrimino.value.forEach((cell) {
       print('cell: $cell');
       List<int> newCell = [cell[0], cell[1] - 1];
-      _updateCell(cell, BlockType.empty, gridClone);
-      _updateCell(newCell, _blockType.value, gridClone);
+      // _updateCell(cell, BlockType.empty, gridClone);
+      // _updateCell(newCell, _blockType.value, gridClone);
       _tetrimino.replace(cell, newCell);
-      print('cell updated: $cell');
+      print('cell updated: $newCell');
     });
     print('falling done');
     return;
@@ -107,7 +109,46 @@ class GameBloc {
   // TODO Fix contact detection: bottom finding ok
   void checkContactBelow() {
     print('checking for contact');
-    _tetrimino.value.forEach((cell) {
+    var reachBottom =
+        _tetrimino.value.firstWhere((cell) => cell[1] == 0, orElse: () => []);
+    var reachTop = _tetrimino.value.firstWhere((cell) {
+      List<int> nextBlock = [cell[0], cell[1] - 1];
+      BlockType nextBlockType = findCell(nextBlock, _grid.value);
+      print(' reachTop nextBlockType: $nextBlockType');
+      return (nextBlock[1] == 21 && nextBlockType == BlockType.locked);
+    }, orElse: () => []);
+
+    var reachOtherBlock = _tetrimino.value.firstWhere((cell) {
+      List<int> nextBlock = [cell[0], cell[1] - 1];
+      BlockType nextBlockType = findCell(nextBlock, _grid.value);
+      print(' reachOtherBlock nextBlockType: $nextBlockType');
+      return (nextBlockType == BlockType.locked &&
+          _tetrimino.value.contains(nextBlock) == false);
+    }, orElse: () => []);
+
+    print('reachBottom: $reachBottom');
+    print('reachTop: $reachTop');
+    print('reachOtherBlock: $reachOtherBlock');
+
+    if (reachTop.isNotEmpty) {
+      _gameOver.value = true;
+      print('reached top');
+      return;
+    }
+
+    if (reachBottom.isNotEmpty || reachOtherBlock.isNotEmpty) {
+      if (!_isLocking.value) {
+        _isLocking.value = true;
+        print('initiate lock');
+        return;
+      }
+      return;
+    }
+    print('continue to fall');
+    _isLocking.value = false;
+    return;
+
+    /*_tetrimino.value.forEach((cell) {
       List<int> nextBlock = [cell[0], cell[1] - 1];
       BlockType nextBlockType = findCell(nextBlock, _grid.value);
       if (cell[1] == 0) {
@@ -115,9 +156,11 @@ class GameBloc {
         // TODO: test without ternary
         if (!_isLocking.value) {
           _isLocking.value = true;
+          print('initiate lock');
         }
         return;
       } else if (nextBlock[1] == 21 && nextBlockType == BlockType.locked) {
+        print('reached top');
         _gameOver.value = true;
         return;
       } else if (nextBlockType == BlockType.locked &&
@@ -127,10 +170,11 @@ class GameBloc {
         }
         print('found block underneath');
         return;
+      } else {
+        _isLocking.value = false;
       }
-      _isLocking.value = false;
     });
-    return;
+    return;*/
   }
 
   // TODO : make this function work
@@ -196,8 +240,8 @@ class GameBloc {
         break;
     }
 
-    _tetrimino.value
-        .forEach((cell) => _updateCell(cell, _blockType.value, _grid.value));
+    // _tetrimino.value
+    //     .forEach((cell) => _updateCell(cell, _blockType.value, _grid.value));
     print('added new piece');
     return;
   }
@@ -211,7 +255,7 @@ class GameBloc {
     clonedGrid.forEach((index, blockType) {
       const compareCoordinates = IterableEquality();
       if (compareCoordinates.equals(index, coordinates)) {
-        blockType = type;
+        clonedGrid[index] = type;
       }
     });
     _grid.value = clonedGrid;
@@ -257,24 +301,29 @@ class GameBloc {
     //TODO clear full lines from grid
   }
 
-  void gameLoop() {
+  void gameLoop() async {
     while (_gameOver.value == false) {
       var newBlock = randomizer.choosePiece();
       _blockType.value = newBlock;
       print('block added: ${_blockType.value}');
       addPiece();
       while (_landed.value == false) {
+        await Future.delayed(Duration(milliseconds: 100));
+        print('stopwatch value: ${stopwatch.elapsedMilliseconds}');
         checkContactBelow();
-        if (_isLocking.value && stopwatch.elapsedMilliseconds > 2000) {
+        if (_isLocking.value == true && stopwatch.elapsedMilliseconds > 50) {
           _landed.value = true;
+          print('==============LANDED================');
         } else if (_isLocking.value == false) {
-          Future.delayed(Duration(milliseconds: 600));
+          await Future.delayed(Duration(milliseconds: 600));
           fall();
         }
       }
       // reinitialize control values if block landed
-      if (_landed.value) {
+      if (_landed.value == true) {
+        print('managing landing');
         _isLocking.value = false;
+        // TODO fix inclusion of tetrimino in grid
         _tetrimino.value.forEach(
             (cell) => _updateCell(cell, BlockType.locked, _grid.value));
         _tetrimino.value = [];
