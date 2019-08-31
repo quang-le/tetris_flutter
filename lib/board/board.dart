@@ -28,6 +28,7 @@ class _BoardState extends State<Board> {
     super.initState();
   }
 
+  // TODO add gesture detector
   @override
   Widget build(BuildContext context) {
     return Container(

@@ -80,27 +80,48 @@ class GameBloc {
   void fall() {
     print('falling');
     const compareList = IterableEquality();
-    var oldTetrimino = List<List<int>>.from(_tetrimino.value);
-    List<List<int>> cellsToClear = [];
+    var cellsToRemove = List<List<int>>.from(_tetrimino.value);
+    List<List<int>> cellsToKeep = [];
     _tetrimino.value.forEach((cell) {
-      print('cell: $cell');
       List<int> newCell = [cell[0], cell[1] - 1];
       _updateCell(newCell, _blockType.value, _grid.value);
-      // TODO investigate if stream updated immediately
       _tetrimino.replace(cell, newCell);
-      print('cell updated: $newCell');
+      _tetrimino.refresh();
     });
-    oldTetrimino.forEach((oldCell) {
+    // TODO encapsulate the comparison in a function
+    cellsToRemove.forEach((oldCell) {
       var matchingCell = _tetrimino.value.firstWhere(
           (newCell) => compareList.equals(newCell, oldCell),
           orElse: () => []);
-      if (matchingCell.isEmpty) {
-        cellsToClear.add(matchingCell);
+      if (matchingCell.isNotEmpty) {
+        cellsToKeep.add(matchingCell);
       }
     });
-    cellsToClear.forEach((cellToClear) {
-      _updateCell(cellToClear, BlockType.empty, _grid.value);
-    });
+    print(cellsToKeep.toString());
+    //if no cells of the new position overlap with previous position, clear old cells
+    if (cellsToKeep.isEmpty) {
+      // TODO encapsulate in function
+      cellsToRemove.forEach((cellToClear) {
+        _updateCell(cellToClear, BlockType.empty, _grid.value);
+      });
+      //otherwise remove matching cells from clearing
+    } else {
+      List<List<int>> cellsToRemoveUpdated = [];
+      cellsToRemove.forEach((cellToClear) {
+        var removeFromRemoveList = cellsToKeep.firstWhere(
+            (cellToKeep) => compareList.equals(cellToClear, cellToKeep),
+            orElse: () => []);
+        if (removeFromRemoveList.isEmpty) {
+          cellsToRemoveUpdated.add(cellToClear);
+        }
+      });
+      cellsToRemove = cellsToRemoveUpdated;
+      // then clear old cells
+      cellsToRemove.forEach((cellToClear) {
+        _updateCell(cellToClear, BlockType.empty, _grid.value);
+      });
+    }
+
     print('falling done');
     return;
   }
@@ -127,7 +148,9 @@ class GameBloc {
       List<int> nextBlock = [cell[0], cell[1] - 1];
       BlockType nextBlockType = findCell(nextBlock, _grid.value);
       print(' reachTop nextBlockType: $nextBlockType');
-      return (nextBlock[1] == 21 && nextBlockType == BlockType.locked);
+      return (nextBlock[1] == 20 &&
+          nextBlockType == BlockType.locked &&
+          _tetrimino.value.contains(nextBlock) == false);
     }, orElse: () => []);
 
     var reachOtherBlock = _tetrimino.value.firstWhere((cell) {
@@ -144,7 +167,7 @@ class GameBloc {
 
     if (reachTop.isNotEmpty) {
       _gameOver.value = true;
-      print('reached top');
+      print('++++++++++++++++++++GAME OVER+++++++++++++++++++++');
       return;
     }
 
@@ -205,10 +228,10 @@ class GameBloc {
         break;
       case BlockType.O:
         _tetrimino.value = [
+          [4, 25],
           [5, 25],
-          [6, 25],
+          [4, 24],
           [5, 24],
-          [6, 24],
         ];
         break;
       case BlockType.T:
@@ -326,7 +349,6 @@ class GameBloc {
       if (_landed.value == true) {
         print('managing landing');
         _isLocking.value = false;
-        // TODO fix inclusion of tetrimino in grid
         _tetrimino.value.forEach(
             (cell) => _updateCell(cell, BlockType.locked, _grid.value));
         _tetrimino.value = [];
