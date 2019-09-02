@@ -25,6 +25,7 @@ class GameBloc {
   var stopwatch = Stopwatch();
   var randomizer = Randomizer();
   var compareList = IterableEquality();
+  var mapCompare = MapEquality();
   StreamSubscription gameStart;
 
   var _grid = StreamedValue<Map<List<int>, BlockType>>();
@@ -307,6 +308,7 @@ class GameBloc {
     return cellsToKeep;
   }
 
+// TODO refactor variable names for clarity
   List<int> _matchLists(List<int> list, List<List<int>> list2D) {
     var matchingCell = list2D
         .firstWhere((cell) => compareList.equals(cell, list), orElse: () => []);
@@ -328,6 +330,21 @@ class GameBloc {
     _grid.value = clonedGrid;
     return;
   }
+
+  /*void _updateColumn(
+    List<int> coordinates,
+    BlockType type,
+    Map<List<int>, BlockType> grid,
+  ) {
+    Map<List<int>, BlockType> clonedGrid = Map<List<int>, BlockType>.from(grid);
+    clonedGrid.forEach((index, blockType) {
+      if (compareList.equals(index, coordinates)) {
+        clonedGrid[index] = type;
+      }
+    });
+    _grid.value = clonedGrid;
+    return;
+  }*/
 
   BlockType findCell(
     List<int> coordinates,
@@ -353,38 +370,61 @@ class GameBloc {
   }
 
 // TODO get width and height from widget i.o. hard coded in function
-  //TODO test clearLines()
   void clearLines(Map<List<int>, BlockType> grid) {
-    const mapCompare = MapEquality();
     Map<List<int>, BlockType> clonedGrid = Map<List<int>, BlockType>.from(grid);
     List<Map<List<int>, BlockType>> fullLines = [];
     // Create subMaps by line/ y coordinate
-    for (var i = 0; i < 20; i++) {
+    // use decremental loop to allow grid update from top to bottom
+    for (var i = 19; i >= 0; i--) {
       Map<List<int>, BlockType> line = {};
       Map<List<int>, BlockType> controlLine = {};
       clonedGrid.forEach((coordinates, type) {
         if (coordinates[1] == i) {
-          line.putIfAbsent(coordinates, () => type);
+          controlLine.putIfAbsent(coordinates, () => type);
         }
       });
-      // TODO check if line is full then add to fullLines
-      line.forEach((coordinates, type) {
+      // create a line with all locked blocks and a control line with all blocks
+      controlLine.forEach((coordinates, type) {
         if (type == BlockType.locked) {
           line.putIfAbsent(coordinates, () => type);
         }
       });
+      // check if line is full then add to fullLines
       if (mapCompare.equals(line, controlLine)) {
         fullLines.add(line);
       }
     }
-    //TODO clear full lines from grid
+    // clear full lines from grid
     if (fullLines.isNotEmpty) {
       fullLines.forEach((line) {
         line.forEach((index, cell) {
           _updateCell(index, BlockType.empty, _grid.value);
-          return;
         });
       });
+      // make list of y coordinate of cleared line
+      List<int> yCoordinate = [];
+      fullLines.forEach((line) {
+        List<List<int>> lineKeys = line.keys.toList();
+        int coordinateToAdd = lineKeys[0][1];
+        yCoordinate.add(coordinateToAdd);
+      });
+      yCoordinate.sort();
+      // for each coordinate, replace the blockType by the type of the block above
+      for (var i = yCoordinate.length - 1; i >= 0; i--) {
+        print('i: $i');
+        for (var j = yCoordinate[i]; j < 21; j++) {
+          print('j: $j');
+          _grid.value.forEach((gridCoord, type) {
+            if (gridCoord[1] == j) {
+              var cellToMoveDown = _matchLists(
+                  [gridCoord[0], gridCoord[1] + 1], _grid.value.keys.toList());
+              var newType = _grid.value[cellToMoveDown];
+              print('new type : $newType');
+              _updateCell(gridCoord, newType, _grid.value);
+            }
+          });
+        }
+      }
     }
   }
 
