@@ -34,8 +34,24 @@ class _BoardState extends State<Board> {
     return Container(
       height: widget.height,
       width: widget.width,
-      child: Column(
-        children: _gameGrid(context, 10, 20),
+      child: GestureDetector(
+        onHorizontalDragUpdate: (details) {
+          if (details.delta.dx > 0) {
+            bloc.userInputRight();
+          } else if (details.delta.dx < 0) {
+            bloc.userInputLeft();
+          }
+        },
+        onHorizontalDragEnd: (details) {
+          bloc.userInputEnd();
+        },
+        onVerticalDragDown: (details) {
+          bloc.userInputEnd();
+          print('swipe down');
+        },
+        child: Column(
+          children: _gameGrid(context, 10, 20),
+        ),
       ),
     );
   }
