@@ -24,6 +24,7 @@ class GameBloc {
 
   var stopwatch = Stopwatch();
   var randomizer = Randomizer();
+  var compareList = IterableEquality();
   StreamSubscription gameStart;
 
   var _grid = StreamedValue<Map<List<int>, BlockType>>();
@@ -76,41 +77,72 @@ class GameBloc {
     return grid;
   }
 
-  // TODO prevent erasing cells that are part of the new position but keep erasing the others
-  void fall() {
-    print('falling');
-    const compareList = IterableEquality();
-    var cellsToRemove = List<List<int>>.from(_tetrimino.value);
-    List<List<int>> cellsToKeep = [];
+  List<int> _determineMovementValues(Direction direction, List<int> cell) {
+    List<int> movementValues = [];
+    switch (direction) {
+      case Direction.down:
+        movementValues = [cell[0], cell[1] - 1];
+        break;
+      case Direction.left:
+        if (cell[0] > 0) {
+          movementValues = [cell[0] - 1, cell[1]];
+        } else {
+          movementValues = [cell[0], cell[1]];
+        }
+        break;
+      case Direction.right:
+        if (cell[0] < 10) {
+          movementValues = [cell[0] + 1, cell[1]];
+        } else {
+          movementValues = [cell[0], cell[1]];
+        }
+    }
+    return movementValues;
+  }
+
+  void _updateTetriminoPositionInStream(Direction direction) {
     _tetrimino.value.forEach((cell) {
-      List<int> newCell = [cell[0], cell[1] - 1];
+      List<int> newCell = _determineMovementValues(direction, cell);
       _updateCell(newCell, _blockType.value, _grid.value);
       _tetrimino.replace(cell, newCell);
       _tetrimino.refresh();
     });
-    // TODO encapsulate the comparison in a function
-    cellsToRemove.forEach((oldCell) {
-      var matchingCell = _tetrimino.value.firstWhere(
-          (newCell) => compareList.equals(newCell, oldCell),
-          orElse: () => []);
+  }
+
+  List<List<int>> _createListOfMatchingLists(
+      List<List<int>> list1, List<List<int>> list2) {
+    List<List<int>> cellsToKeep = [];
+    list1.forEach((oldCell) {
+      var matchingCell = _matchLists(oldCell, list2);
       if (matchingCell.isNotEmpty) {
         cellsToKeep.add(matchingCell);
       }
     });
-    print(cellsToKeep.toString());
+    print('cellsToKeep: ${cellsToKeep.toString()}');
+    return cellsToKeep;
+  }
+
+  List<int> _matchLists(List<int> list, List<List<int>> list2D) {
+    var matchingCell = list2D
+        .firstWhere((cell) => compareList.equals(cell, list), orElse: () => []);
+
+    return matchingCell;
+  }
+
+  // TODO refactor for clarity
+  void _clearOldCells(
+      List<List<int>> cellsToRemove, List<List<int>> cellsToKeep) {
     //if no cells of the new position overlap with previous position, clear old cells
     if (cellsToKeep.isEmpty) {
-      // TODO encapsulate in function
       cellsToRemove.forEach((cellToClear) {
         _updateCell(cellToClear, BlockType.empty, _grid.value);
       });
       //otherwise remove matching cells from clearing
     } else {
+      // TODO encapsulate in _createListOfNonMatchingLists
       List<List<int>> cellsToRemoveUpdated = [];
       cellsToRemove.forEach((cellToClear) {
-        var removeFromRemoveList = cellsToKeep.firstWhere(
-            (cellToKeep) => compareList.equals(cellToClear, cellToKeep),
-            orElse: () => []);
+        var removeFromRemoveList = _matchLists(cellToClear, cellsToKeep);
         if (removeFromRemoveList.isEmpty) {
           cellsToRemoveUpdated.add(cellToClear);
         }
@@ -121,12 +153,42 @@ class GameBloc {
         _updateCell(cellToClear, BlockType.empty, _grid.value);
       });
     }
+  }
 
-    print('falling done');
+  void move(Direction direction) {
+    // keep copy of old coordinates for clearing display
+    var cellsToRemove = List<List<int>>.from(_tetrimino.value);
+
+    // update tetrimino position in stream
+    _updateTetriminoPositionInStream(direction);
+
+    // Identify cells to keep (new cell position overlaps old cell position)
+    List<List<int>> cellsToKeep =
+        _createListOfMatchingLists(cellsToRemove, _tetrimino.value);
+
+    //if no cells of the new position overlap with previous position, clear old cells
+    _clearOldCells(cellsToRemove, cellsToKeep);
     return;
   }
 
-  void goLeft() {
+  void fall() {
+    move(Direction.down);
+    return;
+  }
+
+  void moveLeft() {
+    move(Direction.left);
+    checkContactBelow();
+    return;
+  }
+
+  void moveRight() {
+    move(Direction.right);
+    checkContactBelow();
+    return;
+  }
+
+  /* void goLeft() {
     _goLeft.value = true;
     _goLeft.value = false;
     checkContactBelow();
@@ -138,7 +200,7 @@ class GameBloc {
     _goRight.value = false;
     checkContactBelow();
     return;
-  }
+  }*/
 
   void checkContactBelow() {
     print('checking for contact');
@@ -246,8 +308,8 @@ class GameBloc {
         break;
     }
 
-    // _tetrimino.value
-    //     .forEach((cell) => _updateCell(cell, _blockType.value, _grid.value));
+    _tetrimino.value
+        .forEach((cell) => _updateCell(cell, _blockType.value, _grid.value));
     print('added new piece');
     return;
   }
@@ -259,8 +321,7 @@ class GameBloc {
   ) {
     Map<List<int>, BlockType> clonedGrid = Map<List<int>, BlockType>.from(grid);
     clonedGrid.forEach((index, blockType) {
-      const compareCoordinates = IterableEquality();
-      if (compareCoordinates.equals(index, coordinates)) {
+      if (compareList.equals(index, coordinates)) {
         clonedGrid[index] = type;
       }
     });
@@ -372,3 +433,5 @@ class GameBloc {
 }
 
 enum BlockType { I, J, L, T, S, Z, O, empty, locked }
+
+enum Direction { left, right, down }
