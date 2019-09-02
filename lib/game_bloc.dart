@@ -9,11 +9,11 @@ class GameBloc {
     // TODO stop locking and send next block
     _isLocking.stream.listen((locking) {
       if (locking) {
-        stopwatch.start();
+        stopwatchLock.start();
         print('stopwatch started');
       } else if (!locking) {
-        stopwatch.stop();
-        stopwatch.reset();
+        stopwatchLock.stop();
+        stopwatchLock.reset();
       }
     });
     gameStart = _gameStart.stream.listen((start) {
@@ -22,7 +22,8 @@ class GameBloc {
     });
   }
 
-  var stopwatch = Stopwatch();
+  var stopwatchLock = Stopwatch();
+  var stopwatchFall = Stopwatch();
   var randomizer = Randomizer();
   var compareList = IterableEquality();
   var mapCompare = MapEquality();
@@ -471,22 +472,31 @@ class GameBloc {
       print('block added: ${_blockType.value}');
       addPiece();
       while (_landed.value == false) {
-        await Future.delayed(Duration(milliseconds: 100));
-        checkContactOnSide();
-        if (_goLeft.value) {
-          moveLeft();
+        stopwatchFall.start();
+        // TODO modify fall delay programmatically
+        while (stopwatchFall.elapsedMilliseconds < 400) {
+          // Future necessary for performance and to give time to render
+          await Future.delayed(Duration(milliseconds: 100));
+          checkContactOnSide();
+          if (_goLeft.value) {
+            moveLeft();
+          }
+          if (_goRight.value) {
+            moveRight();
+          }
+          print('stopwatch value: ${stopwatchLock.elapsedMilliseconds}');
+          checkContactBelow();
         }
-        if (_goRight.value) {
-          moveRight();
-        }
-        print('stopwatch value: ${stopwatch.elapsedMilliseconds}');
-        checkContactBelow();
-        if (_isLocking.value == true && stopwatch.elapsedMilliseconds > 50) {
+        stopwatchFall.stop();
+        stopwatchFall.reset();
+        if (_isLocking.value == true &&
+            stopwatchLock.elapsedMilliseconds > 1000) {
           _landed.value = true;
           print('==============LANDED================');
         } else if (_isLocking.value == false) {
           // TODO allow horizontal movement while awaiting delay
-          await Future.delayed(Duration(milliseconds: 600));
+          // TODO modify fall delay programmatically
+          //await Future.delayed(Duration(milliseconds: 400));
           fall();
         }
       }
