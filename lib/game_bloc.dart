@@ -219,6 +219,42 @@ class GameBloc {
     }
   }
 
+  // TODO refactor all reachBlock functions for clarity
+  void checkContactOnSide() {
+    var reachLeftLimit =
+        _tetrimino.value.firstWhere((cell) => cell[0] == 0, orElse: () => []);
+    var reachRightLimit =
+        _tetrimino.value.firstWhere((cell) => cell[0] == 9, orElse: () => []);
+    var reachBlockOnLeft = _tetrimino.value.firstWhere((cell) {
+      if (cell[0] != 0) {
+        List<int> nextBlock = [cell[0] - 1, cell[1]];
+        BlockType nextBlockType = findCell(nextBlock, _grid.value);
+        return ((nextBlockType == BlockType.locked &&
+            _tetrimino.value.contains(nextBlock) == false));
+      }
+      return false;
+    }, orElse: () => []);
+
+    var reachBlockOnRight = _tetrimino.value.firstWhere((cell) {
+      if (cell[0] != 9) {
+        List<int> nextBlock = [cell[0] + 1, cell[1]];
+        BlockType nextBlockType = findCell(nextBlock, _grid.value);
+        return ((nextBlockType == BlockType.locked &&
+            _tetrimino.value.contains(nextBlock) == false));
+      }
+      return false;
+    }, orElse: () => []);
+    ;
+
+    if (reachLeftLimit.isNotEmpty || reachBlockOnLeft.isNotEmpty) {
+      _goLeft.value = false;
+    }
+
+    if (reachRightLimit.isNotEmpty || reachBlockOnRight.isNotEmpty) {
+      _goRight.value = false;
+    }
+  }
+
   void checkContactBelow() {
     print('checking for contact');
     var reachBottom =
@@ -436,6 +472,7 @@ class GameBloc {
       addPiece();
       while (_landed.value == false) {
         await Future.delayed(Duration(milliseconds: 100));
+        checkContactOnSide();
         if (_goLeft.value) {
           moveLeft();
         }
@@ -448,6 +485,7 @@ class GameBloc {
           _landed.value = true;
           print('==============LANDED================');
         } else if (_isLocking.value == false) {
+          // TODO allow horizontal movement while awaiting delay
           await Future.delayed(Duration(milliseconds: 600));
           fall();
         }
