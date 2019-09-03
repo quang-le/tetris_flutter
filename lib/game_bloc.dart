@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:frideos_core/frideos_core.dart';
 import 'package:tetris/randomizer.dart';
+import 'package:tetris/tetriminos/tetriminos.dart';
 
 class GameBloc {
   GameBloc() {
@@ -10,14 +11,12 @@ class GameBloc {
     _isLocking.stream.listen((locking) {
       if (locking) {
         stopwatchLock.start();
-        print('stopwatch started');
       } else if (!locking) {
         stopwatchLock.stop();
         stopwatchLock.reset();
       }
     });
     gameStart = _gameStart.stream.listen((start) {
-      print('game starting');
       gameLoop();
     });
   }
@@ -38,6 +37,11 @@ class GameBloc {
   var _gameOver = StreamedValue<bool>()..inStream(false);
   var _gameStart = StreamedValue<bool>()..inStream(true);
   var _blockType = StreamedValue<BlockType>();
+  var _center = StreamedList<int>()
+    ..inStream([
+      5,
+      21
+    ]); // arbitrary value to avoid null error. correct value set by add()
 
   Stream<Map<List<int>, BlockType>> get grid => _grid.outStream;
   Stream<List<List<int>>> get tetrimino => _tetrimino.outStream;
@@ -63,7 +67,6 @@ class GameBloc {
     for (var j = 0; j < gridY.length; j++) {
       for (var i = 0; i < gridX.length; i++) {
         coordinates.add([gridX[i], gridY[j]]);
-        //print('coordinates[${[gridX[i], gridY[j]]}]: ${[gridX[i], gridY[j]]}');
       }
     }
     return coordinates;
@@ -74,76 +77,16 @@ class GameBloc {
     for (var i = 0; i < gridCoordinates.length; i++) {
       List<int> coordinates = gridCoordinates[i];
       grid.putIfAbsent(coordinates, () => BlockType.empty);
-      // print('grid[$coordinates]: ${grid[coordinates]}');
     }
     return grid;
   }
 
   void addPiece() {
-    switch (_blockType.value) {
-      case BlockType.I:
-        _tetrimino.value = [
-          [3, 24],
-          [4, 24],
-          [5, 24],
-          [6, 24],
-        ];
-        break;
-      case BlockType.J:
-        _tetrimino.value = [
-          [3, 24],
-          [4, 24],
-          [5, 24],
-          [5, 25],
-        ];
-        break;
-      case BlockType.L:
-        _tetrimino.value = [
-          [3, 24],
-          [4, 24],
-          [5, 24],
-          [3, 25],
-        ];
-        break;
-      case BlockType.S:
-        _tetrimino.value = [
-          [3, 24],
-          [4, 24],
-          [4, 25],
-          [5, 25],
-        ];
-        break;
-      case BlockType.Z:
-        _tetrimino.value = [
-          [3, 25],
-          [4, 25],
-          [4, 24],
-          [5, 24],
-        ];
-        break;
-      case BlockType.O:
-        _tetrimino.value = [
-          [4, 25],
-          [5, 25],
-          [4, 24],
-          [5, 24],
-        ];
-        break;
-      case BlockType.T:
-        _tetrimino.value = [
-          [3, 24],
-          [4, 24],
-          [5, 24],
-          [4, 25],
-        ];
-        break;
-      default:
-        break;
-    }
+    _tetrimino.value = Tetriminos.coordinates(_blockType.value);
 
     _tetrimino.value
         .forEach((cell) => _updateCell(cell, _blockType.value, _grid.value));
-    print('added new piece');
+    _center.value = Tetriminos.setCenter(_blockType.value);
     return;
   }
 
@@ -165,16 +108,29 @@ class GameBloc {
 
   void fall() {
     move(Direction.down);
+    if (_center.value[1] > 0) {
+      _center.value[1]--;
+      _center.refresh();
+    }
+
     return;
   }
 
   void moveLeft() {
     move(Direction.left);
+    if (_center.value[0] > 0) {
+      _center.value[0]--;
+      _center.refresh();
+    }
     return;
   }
 
   void moveRight() {
     move(Direction.right);
+    if (_center.value[0] < 10) {
+      _center.value[0]++;
+      _center.refresh();
+    }
     return;
   }
 
@@ -194,6 +150,24 @@ class GameBloc {
     _goLeft.value = false;
     _goRight.value = false;
     return;
+  }
+
+  void rotate() {
+    var center = _center.value;
+    var matrix = Tetriminos.leftMatrix;
+    var tetrimino = _tetrimino.value;
+    var offSetBlocks = Tetriminos.centerCoordinatesOnCell(center, tetrimino);
+    var vectorTetrimino = Tetriminos.convertListToVector(offSetBlocks);
+    vectorTetrimino.forEach((cell) {
+      cell.postmultiply(matrix);
+      print("rotated cell: $cell");
+    });
+    var updatedCoordinates = Tetriminos.convertVectorToList(vectorTetrimino);
+    var updatedCoordinatesOnGrid =
+        Tetriminos.convertCoordinatesToGrid(center, updatedCoordinates);
+
+    // keep copy of old coordinates for clearing display
+    var cellsToRemove = List<List<int>>.from(_tetrimino.value);
   }
 
   void _clearOldCells(
@@ -257,13 +231,11 @@ class GameBloc {
   }
 
   void checkContactBelow() {
-    print('checking for contact');
     var reachBottom =
         _tetrimino.value.firstWhere((cell) => cell[1] == 0, orElse: () => []);
     var reachTop = _tetrimino.value.firstWhere((cell) {
       List<int> nextBlock = [cell[0], cell[1] - 1];
       BlockType nextBlockType = findCell(nextBlock, _grid.value);
-      print(' reachTop nextBlockType: $nextBlockType');
       return (nextBlock[1] == 20 &&
           nextBlockType == BlockType.locked &&
           _tetrimino.value.contains(nextBlock) == false);
@@ -272,14 +244,9 @@ class GameBloc {
     var reachOtherBlock = _tetrimino.value.firstWhere((cell) {
       List<int> nextBlock = [cell[0], cell[1] - 1];
       BlockType nextBlockType = findCell(nextBlock, _grid.value);
-      print(' reachOtherBlock nextBlockType: $nextBlockType');
       return (nextBlockType == BlockType.locked &&
           _tetrimino.value.contains(nextBlock) == false);
     }, orElse: () => []);
-
-    print('reachBottom: $reachBottom');
-    print('reachTop: $reachTop');
-    print('reachOtherBlock: $reachOtherBlock');
 
     if (reachTop.isNotEmpty) {
       _gameOver.value = true;
@@ -290,12 +257,10 @@ class GameBloc {
     if (reachBottom.isNotEmpty || reachOtherBlock.isNotEmpty) {
       if (!_isLocking.value) {
         _isLocking.value = true;
-        print('initiate lock');
         return;
       }
       return;
     }
-    print('continue to fall');
     _isLocking.value = false;
     return;
   }
@@ -341,7 +306,6 @@ class GameBloc {
         cellsToKeep.add(matchingCell);
       }
     });
-    print('cellsToKeep: ${cellsToKeep.toString()}');
     return cellsToKeep;
   }
 
@@ -368,21 +332,6 @@ class GameBloc {
     return;
   }
 
-  /*void _updateColumn(
-    List<int> coordinates,
-    BlockType type,
-    Map<List<int>, BlockType> grid,
-  ) {
-    Map<List<int>, BlockType> clonedGrid = Map<List<int>, BlockType>.from(grid);
-    clonedGrid.forEach((index, blockType) {
-      if (compareList.equals(index, coordinates)) {
-        clonedGrid[index] = type;
-      }
-    });
-    _grid.value = clonedGrid;
-    return;
-  }*/
-
   BlockType findCell(
     List<int> coordinates,
     Map<List<int>, BlockType> grid,
@@ -395,15 +344,6 @@ class GameBloc {
       }
     });
     return target;
-  }
-
-  void hasLanded() {
-    //dispose listeners for left and right
-    //re-initiaize all movement tracking streams
-    _isLocking.value = false;
-    _landed.value = false;
-    print('piece landed');
-    return;
   }
 
 // TODO get width and height from widget i.o. hard coded in function
@@ -448,15 +388,12 @@ class GameBloc {
       yCoordinate.sort();
       // for each coordinate, replace the blockType by the type of the block above
       for (var i = yCoordinate.length - 1; i >= 0; i--) {
-        print('i: $i');
         for (var j = yCoordinate[i]; j < 21; j++) {
-          print('j: $j');
           _grid.value.forEach((gridCoord, type) {
             if (gridCoord[1] == j) {
               var cellToMoveDown = _matchLists(
                   [gridCoord[0], gridCoord[1] + 1], _grid.value.keys.toList());
               var newType = _grid.value[cellToMoveDown];
-              print('new type : $newType');
               _updateCell(gridCoord, newType, _grid.value);
             }
           });
@@ -469,7 +406,6 @@ class GameBloc {
     while (_gameOver.value == false) {
       var newBlock = randomizer.choosePiece();
       _blockType.value = newBlock;
-      print('block added: ${_blockType.value}');
       addPiece();
       while (_landed.value == false) {
         stopwatchFall.start();
@@ -484,7 +420,6 @@ class GameBloc {
           if (_goRight.value) {
             moveRight();
           }
-          print('stopwatch value: ${stopwatchLock.elapsedMilliseconds}');
           checkContactBelow();
         }
         stopwatchFall.stop();
@@ -501,7 +436,6 @@ class GameBloc {
       }
       // reinitialize control values if block landed
       if (_landed.value == true) {
-        print('managing landing');
         _isLocking.value = false;
         _tetrimino.value.forEach(
             (cell) => _updateCell(cell, BlockType.locked, _grid.value));
@@ -514,6 +448,7 @@ class GameBloc {
 
   void dispose() {
     gameStart.cancel();
+    _center.dispose();
     _grid.dispose();
     _landed.dispose();
     _isLocking.dispose();
