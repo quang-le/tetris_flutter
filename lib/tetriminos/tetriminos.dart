@@ -143,7 +143,7 @@ class Tetriminos {
   }
 
   static List<List<int>> convertVectorToList(List<Vector2> vectors) {
-    List<List<int>> list;
+    List<List<int>> list = [];
     vectors.forEach((vector) {
       List<double> vectorToArray = [0, 0];
       vector.copyIntoArray(vectorToArray);

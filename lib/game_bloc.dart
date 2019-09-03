@@ -38,7 +38,7 @@ class GameBloc {
   var _gameStart = StreamedValue<bool>()..inStream(true);
   var _blockType = StreamedValue<BlockType>();
   var _center = StreamedList<int>()
-    ..inStream([
+    ..value = ([
       5,
       21
     ]); // arbitrary value to avoid null error. correct value set by add()
@@ -103,14 +103,17 @@ class GameBloc {
 
     //if no cells of the new position overlap with previous position, clear old cells
     _clearOldCells(cellsToRemove, cellsToKeep);
+
     return;
   }
 
   void fall() {
     move(Direction.down);
-    if (_center.value[1] > 0) {
-      _center.value[1]--;
-      _center.refresh();
+    if (_center.value.isNotEmpty) {
+      if (_center.value[1] > 0) {
+        _center.value[1]--;
+        _center.refresh();
+      }
     }
 
     return;
@@ -118,18 +121,22 @@ class GameBloc {
 
   void moveLeft() {
     move(Direction.left);
-    if (_center.value[0] > 0) {
-      _center.value[0]--;
-      _center.refresh();
+    if (_center.value.isNotEmpty) {
+      if (_center.value[0] > 0) {
+        _center.value[0]--;
+        _center.refresh();
+      }
     }
     return;
   }
 
   void moveRight() {
     move(Direction.right);
-    if (_center.value[0] < 10) {
-      _center.value[0]++;
-      _center.refresh();
+    if (_center.value.isNotEmpty) {
+      if (_center.value[0] < 10) {
+        _center.value[0]++;
+        _center.refresh();
+      }
     }
     return;
   }
@@ -152,22 +159,48 @@ class GameBloc {
     return;
   }
 
-  void rotate() {
+  // TODO add left or right param
+  List<List<int>> _obtainRotatedCoordinates() {
     var center = _center.value;
     var matrix = Tetriminos.leftMatrix;
     var tetrimino = _tetrimino.value;
-    var offSetBlocks = Tetriminos.centerCoordinatesOnCell(center, tetrimino);
-    var vectorTetrimino = Tetriminos.convertListToVector(offSetBlocks);
-    vectorTetrimino.forEach((cell) {
-      cell.postmultiply(matrix);
-      print("rotated cell: $cell");
-    });
-    var updatedCoordinates = Tetriminos.convertVectorToList(vectorTetrimino);
-    var updatedCoordinatesOnGrid =
-        Tetriminos.convertCoordinatesToGrid(center, updatedCoordinates);
+    if (center.isNotEmpty) {
+      var offSetBlocks = Tetriminos.centerCoordinatesOnCell(center, tetrimino);
+      var vectorTetrimino = Tetriminos.convertListToVector(offSetBlocks);
+      vectorTetrimino.forEach((cell) {
+        cell.postmultiply(matrix);
+        print("rotated cell: $cell");
+      });
+      var updatedCoordinates = Tetriminos.convertVectorToList(vectorTetrimino);
+      var updatedCoordinatesOnGrid =
+          Tetriminos.convertCoordinatesToGrid(center, updatedCoordinates);
+      return updatedCoordinatesOnGrid;
+    }
+    return tetrimino;
+  }
 
-    // keep copy of old coordinates for clearing display
-    var cellsToRemove = List<List<int>>.from(_tetrimino.value);
+  // TODO add left or right param
+  void rotate() {
+    if (_center.value.isNotEmpty) {
+      var updatedCoordinatesOnGrid = _obtainRotatedCoordinates();
+
+      // keep copy of old coordinates for clearing display
+      var cellsToRemove = List<List<int>>.from(_tetrimino.value);
+
+      // TODO add wall detection here
+
+      //update tetrimino stream
+      _tetrimino.value = updatedCoordinatesOnGrid;
+
+      // Identify cells to keep (new cell position overlaps old cell position)
+      List<List<int>> cellsToKeep =
+          _createListOfMatchingLists(cellsToRemove, _tetrimino.value);
+
+      //if no cells of the new position overlap with previous position, clear old cells
+      _clearOldCells(cellsToRemove, cellsToKeep);
+    }
+
+    return;
   }
 
   void _clearOldCells(
@@ -219,7 +252,6 @@ class GameBloc {
       }
       return false;
     }, orElse: () => []);
-    ;
 
     if (reachLeftLimit.isNotEmpty || reachBlockOnLeft.isNotEmpty) {
       _goLeft.value = false;
