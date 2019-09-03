@@ -34,6 +34,7 @@ class GameBloc {
   var _tetrimino = StreamedList<List<int>>()..inStream(<List<int>>[]);
   var _goLeft = StreamedValue<bool>()..inStream(false);
   var _goRight = StreamedValue<bool>()..inStream(false);
+  var _isRotating = StreamedValue<bool>()..inStream(false);
   var _gameOver = StreamedValue<bool>()..inStream(false);
   var _gameStart = StreamedValue<bool>()..inStream(true);
   var _blockType = StreamedValue<BlockType>();
@@ -159,6 +160,11 @@ class GameBloc {
     return;
   }
 
+  void userInputRotate() {
+    _isRotating.value = true;
+    return;
+  }
+
   // TODO add left or right param
   List<List<int>> _obtainRotatedCoordinates() {
     var center = _center.value;
@@ -191,6 +197,10 @@ class GameBloc {
 
       //update tetrimino stream
       _tetrimino.value = updatedCoordinatesOnGrid;
+      // update grid with correct block value
+      _tetrimino.value.forEach((cell) {
+        _updateCell(cell, _blockType.value, _grid.value);
+      });
 
       // Identify cells to keep (new cell position overlaps old cell position)
       List<List<int>> cellsToKeep =
@@ -442,10 +452,15 @@ class GameBloc {
       while (_landed.value == false) {
         stopwatchFall.start();
         // TODO modify fall delay programmatically
-        while (stopwatchFall.elapsedMilliseconds < 400) {
+        while (stopwatchFall.elapsedMilliseconds < 2000) {
           // Future necessary for performance and to give time to render
           await Future.delayed(Duration(milliseconds: 100));
           checkContactOnSide();
+          if (_isRotating.value) {
+            rotate();
+            _isRotating.value = false;
+          }
+
           if (_goLeft.value) {
             moveLeft();
           }
@@ -490,6 +505,7 @@ class GameBloc {
     _goRight.dispose();
     _gameStart.dispose();
     _gameOver.dispose();
+    _isRotating.dispose();
   }
 }
 

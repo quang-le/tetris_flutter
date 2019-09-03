@@ -50,7 +50,7 @@ class _BoardState extends State<Board> {
           print('swipe down');
         },
         onTap: () {
-          bloc.rotate();
+          bloc.userInputRotate();
         },
         child: Column(
           children: _gameGrid(context, 10, 20),
