@@ -494,7 +494,6 @@ class GameBloc {
           _landed.value = true;
           print('==============LANDED================');
         } else if (_isLocking.value == false) {
-          // TODO allow horizontal movement while awaiting delay
           // TODO modify fall delay programmatically
           //await Future.delayed(Duration(milliseconds: 400));
           fall();

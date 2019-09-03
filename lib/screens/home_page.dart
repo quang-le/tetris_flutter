@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tetris/board/grid.dart';
 
 class HomePage extends StatelessWidget {
   @override
