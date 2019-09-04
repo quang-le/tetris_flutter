@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:collection/collection.dart';
 import 'package:frideos_core/frideos_core.dart';
 import 'package:tetris/randomizer.dart';
@@ -163,6 +162,97 @@ class GameBloc {
   void userInputRotate() {
     _isRotating.value = true;
     return;
+  }
+
+// TODO change name to account for return type
+  List<List<int>> rotateContactDetection(List<List<int>> tetrimino) {
+    List<List<int>> result = List.from(tetrimino);
+    List<List<int>> overlappingCells = [];
+    List<List<int>> leftOverlap = [];
+    List<List<int>> rightOverlap = [];
+    List<List<int>> topOverlap = [];
+    List<List<int>> bottomOverlap = [];
+
+    // check if new coordinates are out of bounds or overlap with a block
+    tetrimino.forEach((cell) {
+      BlockType cellType = findCell(cell, _grid.value);
+      if (cellType == BlockType.locked) {
+        overlappingCells.add(cell);
+      } else if ((cell[0] < 0) || (cell[0] > 9) || cell[1] < 0) {
+        overlappingCells.add(cell);
+      }
+    });
+    if (overlappingCells.isEmpty) {
+      return result;
+    }
+
+    //sort overlapping bocks by overlap type (up,down,left,right)
+    overlappingCells.forEach((cell) {
+      List<int> centeredCell = [
+        cell[0] - _center.value[0],
+        cell[1] - _center.value[1]
+      ];
+      if (centeredCell[0] < 0) {
+        leftOverlap.add(centeredCell);
+      }
+      if (centeredCell[0] > 0) {
+        rightOverlap.add(centeredCell);
+      }
+      if (centeredCell[1] < 0) {
+        bottomOverlap.add(centeredCell);
+      }
+      if (centeredCell[1] > 0) {
+        topOverlap.add(centeredCell);
+      }
+    });
+
+    //if 2 overlaps on same axis: no rotation
+    if ((topOverlap.isNotEmpty && bottomOverlap.isNotEmpty) ||
+        (leftOverlap.isNotEmpty && rightOverlap.isNotEmpty)) {
+      return _tetrimino.value;
+    }
+
+    if(leftOverlap.isNotEmpty&&rightOverlap.isEmpty&&topOverlap.isEmpty&&bottomOverlap.isEmpty){
+      var pushedTetrimino = List.from(result);
+      if (leftOverlap.length>1){
+        //compare and extract highest value
+      }
+      pushedTetrimino.forEach((cell){
+
+      });
+    }
+    // if overlap on X and Y axis, check direction of push:
+    // if another overlapping block share one coord, push in this direction
+
+    // "double block is alone", try pushing horizontally first, if it doesn't work, push vertically
+
+    // Map<String, List<int>> overlappingCells = detectCellOverlap(tetrimino);
+
+    /*  bool leftWall = overlappingCells['leftWall'].isNotEmpty;
+    bool rightWall = overlappingCells['rightWall'].isNotEmpty;
+    bool rightBlock = overlappingCells['rightBlock'].isNotEmpty;
+    bool leftBlock = overlappingCells['leftBlock'].isNotEmpty;
+    bool bottom = overlappingCells['bottom'].isNotEmpty;
+    bool bottomBlock = overlappingCells['bottomBlock'].isNotEmpty;
+    bool topBlock = overlappingCells['topBlock'].isNotEmpty;
+
+    // don't rotate if no space
+    if ((leftWall && rightBlock) ||
+        (rightWall && leftBlock) ||
+        (leftBlock && rightBlock) ||
+        (bottom && topBlock) ||
+        (bottomBlock && topBlock)) {
+      // TODO pass stream value as param for unit testing
+      return _tetrimino.value;
+      // if rotate into wall or block, push in opposite direction
+      //left side push
+    } else if ((leftWall && !rightBlock) ||
+        (leftBlock && !rightBlock && !rightWall)) {
+      result.forEach((cell) {
+        cell[1]++;
+      });
+    }*/
+    return result;
   }
 
   // TODO add left or right param
@@ -491,6 +581,65 @@ class GameBloc {
       }
       _landed.value = false;
     }
+  }
+
+  // TODO fix this code, it doesn't detect anything
+  Map<String, List<int>> detectCellOverlap(List<List<int>> tetrimino) {
+    Map<String, List<int>> result = {};
+    List<int> leftWallOverlap =
+        tetrimino.firstWhere((cell) => cell[0] < 0, orElse: () => []);
+    List<int> rightWallOverlap =
+        tetrimino.firstWhere((cell) => cell[0] > 9, orElse: () => []);
+    List<int> bottomOverlap =
+        tetrimino.firstWhere((cell) => cell[1] < 0, orElse: () => []);
+    List<int> leftBlockOverlap = tetrimino.firstWhere((cell) {
+      if (cell[0] != 0) {
+        List<int> nextBlock = [cell[0] - 1, cell[1]];
+        BlockType nextBlockType = findCell(nextBlock, _grid.value);
+        return ((nextBlockType == BlockType.locked &&
+            tetrimino.contains(nextBlock) == true));
+      }
+      return false;
+    }, orElse: () => []);
+    List<int> rightBlockOverlap = tetrimino.firstWhere((cell) {
+      if (cell[0] != 9) {
+        List<int> nextBlock = [cell[0] + 1, cell[1]];
+        BlockType nextBlockType = findCell(nextBlock, _grid.value);
+        return ((nextBlockType == BlockType.locked &&
+            tetrimino.contains(nextBlock) == true));
+      }
+      return false;
+    }, orElse: () => []);
+
+    List<int> bottomBlockOverlap = tetrimino.firstWhere((cell) {
+      if (cell[1] != 0) {
+        List<int> nextBlock = [cell[0], cell[1] - 1];
+        BlockType nextBlockType = findCell(nextBlock, _grid.value);
+        return ((nextBlockType == BlockType.locked &&
+            tetrimino.contains(nextBlock) == true));
+      }
+      return false;
+    }, orElse: () => []);
+
+    List<int> topBlockOverlap = tetrimino.firstWhere((cell) {
+      if (cell[1] != 21) {
+        List<int> nextBlock = [cell[0], cell[1] + 1];
+        BlockType nextBlockType = findCell(nextBlock, _grid.value);
+        return ((nextBlockType == BlockType.locked &&
+            tetrimino.contains(nextBlock) == true));
+      }
+      return false;
+    }, orElse: () => []);
+
+    result.putIfAbsent("leftWall", () => leftWallOverlap);
+    result.putIfAbsent("leftBlock", () => leftBlockOverlap);
+    result.putIfAbsent("rightWall", () => rightWallOverlap);
+    result.putIfAbsent("rightBlock", () => rightBlockOverlap);
+    result.putIfAbsent("topBlock", () => topBlockOverlap);
+    result.putIfAbsent("bottom", () => bottomOverlap);
+    result.putIfAbsent("bottomBlock", () => bottomBlockOverlap);
+
+    return result;
   }
 
   void dispose() {

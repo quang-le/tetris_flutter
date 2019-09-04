@@ -25,6 +25,8 @@ dependencies:
   cupertino_icons: ^0.1.2
   frideos: ^0.7.0+1
   collection: ^1.14.11
+  vector_math: ^2.0.8
+
 
 dev_dependencies:
   flutter_test:
