@@ -1,16 +1,38 @@
-# tetris
+# Flutter Tetris
 
-A basic tetris clone
+A basic tetris clone done in Flutter as a personal learning project
 
-## Getting Started
+## Flutter version and dependencies
 
-This project is a starting point for a Flutter application.
+- Flutter 1.7.8+hotfix.4
+- frideos: ^0.7.0+1 - Helpers for managing streams (based on and compatible with rxDart)
+- collection: ^1.14.11 - used to compare Lists and Maps
+- vector_math: ^2.0.8 - used to manage block rotation
 
-A few resources to get you started if this is your first Flutter project:
+## Get Started
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+Compile and run file
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Gameplay Features
+[x] use random generator compliant with Tetris guidelines to generate block order
+[x] on contact, allow delay before locking piece
+[x] rotate piece
+[x] wall & block detection
+[] wall & block detection on rotation
+[] t-spin
+[] ghost piece
+[] pause game
+
+## UX features
+[] background music
+[] sound effect
+[] scores
+[] save high score
+[] themes
+[] start screen
+[] settings screen
+
+
+
+
+

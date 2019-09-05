@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
 import 'package:frideos_core/frideos_core.dart';
 import 'package:tetris/randomizer.dart';
 import 'package:tetris/tetriminos/tetriminos.dart';
@@ -212,15 +213,61 @@ class GameBloc {
       return _tetrimino.value;
     }
 
-    if(leftOverlap.isNotEmpty&&rightOverlap.isEmpty&&topOverlap.isEmpty&&bottomOverlap.isEmpty){
+    /// Push from the left, no y axis ambiguity
+    if (leftOverlap.isNotEmpty &&
+        rightOverlap.isEmpty &&
+        topOverlap.isEmpty &&
+        bottomOverlap.isEmpty) {
       var pushedTetrimino = List.from(result);
-      if (leftOverlap.length>1){
-        //compare and extract highest value
-      }
-      pushedTetrimino.forEach((cell){
-
+      int pushValue =
+          _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
+      pushedTetrimino.forEach((cell) {
+        cell[0] += pushValue;
       });
+      result = pushedTetrimino;
     }
+
+    /// Push from the right, no y axis ambiguity
+    else if (rightOverlap.isNotEmpty &&
+        leftOverlap.isEmpty &&
+        topOverlap.isEmpty &&
+        bottomOverlap.isEmpty) {
+      var pushedTetrimino = List.from(result);
+      int pushValue =
+          _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
+      pushedTetrimino.forEach((cell) {
+        cell[0] += pushValue;
+      });
+      result = pushedTetrimino;
+    }
+
+    /// Push from the bottom, no x axis ambiguity
+    else if (bottomOverlap.isNotEmpty &&
+        topOverlap.isEmpty &&
+        leftOverlap.isEmpty &&
+        rightOverlap.isEmpty) {
+      var pushedTetrimino = List.from(result);
+      int pushValue =
+          _determineVerticalPushValue(bottomOverlap, isBottom: true);
+      pushedTetrimino.forEach((cell) {
+        cell[1] += pushValue;
+      });
+      result = pushedTetrimino;
+    }
+
+    /// Push from the top, no x axis ambiguity
+    else if (topOverlap.isNotEmpty &&
+        bottomOverlap.isEmpty &&
+        leftOverlap.isEmpty &&
+        rightOverlap.isEmpty) {
+      var pushedTetrimino = List.from(result);
+      int pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
+      pushedTetrimino.forEach((cell) {
+        cell[1] += pushValue;
+      });
+      result = pushedTetrimino;
+    }
+
     // if overlap on X and Y axis, check direction of push:
     // if another overlapping block share one coord, push in this direction
 
@@ -253,6 +300,44 @@ class GameBloc {
       });
     }*/
     return result;
+  }
+
+  int _determineHorizontalPushValue(List<List<int>> overlappingCells,
+      {@required bool isLeftSide}) {
+    int pushValue = 0;
+    if (overlappingCells.length > 1) {
+      // TODO test value extraction
+      // push only by the highest difference. values need to be compared because BlockType.I
+      // potentially pushes by 2 blocks:
+      if (isLeftSide) {
+        overlappingCells.sort((coord1, coord2) => coord1[0] - coord2[0]);
+        print(overlappingCells.toString());
+      } else {
+        overlappingCells.sort((coord1, coord2) => coord2[0] - coord1[0]);
+        print(overlappingCells.toString());
+      }
+    }
+    pushValue = overlappingCells[0][0];
+    return pushValue;
+  }
+
+  int _determineVerticalPushValue(List<List<int>> overlappingCells,
+      {@required bool isBottom}) {
+    int pushValue = 0;
+    if (overlappingCells.length > 1) {
+      // TODO test value extraction
+      // push only by the highest difference. values need to be compared because BlockType.I
+      // potentially pushes by 2 blocks:
+      if (isBottom) {
+        overlappingCells.sort((coord1, coord2) => coord1[1] - coord2[1]);
+        print(overlappingCells.toString());
+      } else {
+        overlappingCells.sort((coord1, coord2) => coord2[1] - coord1[1]);
+        print(overlappingCells.toString());
+      }
+    }
+    pushValue = overlappingCells[0][1];
+    return pushValue;
   }
 
   // TODO add left or right param
