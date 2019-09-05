@@ -165,6 +165,19 @@ class GameBloc {
     return;
   }
 
+  List<List<int>> _findOverlappingCells(List<List<int>> tetrimino) {
+    List<List<int>> overlappingCells = [];
+    tetrimino.forEach((cell) {
+      BlockType cellType = findCell(cell, _grid.value);
+      if (cellType == BlockType.locked) {
+        overlappingCells.add(cell);
+      } else if ((cell[0] < 0) || (cell[0] > 9) || cell[1] < 0) {
+        overlappingCells.add(cell);
+      }
+    });
+    return overlappingCells;
+  }
+
 // TODO change name to account for return type
   List<List<int>> rotateContactDetection(List<List<int>> tetrimino) {
     List<List<int>> result = List.from(tetrimino);
@@ -175,18 +188,12 @@ class GameBloc {
     List<List<int>> bottomOverlap = [];
 
     // check if new coordinates are out of bounds or overlap with a block
-    tetrimino.forEach((cell) {
-      BlockType cellType = findCell(cell, _grid.value);
-      if (cellType == BlockType.locked) {
-        overlappingCells.add(cell);
-      } else if ((cell[0] < 0) || (cell[0] > 9) || cell[1] < 0) {
-        overlappingCells.add(cell);
-      }
-    });
+    overlappingCells = _findOverlappingCells(result);
     if (overlappingCells.isEmpty) {
       return result;
     }
 
+    // TODO put in separate func
     //sort overlapping bocks by overlap type (up,down,left,right)
     overlappingCells.forEach((cell) {
       List<int> centeredCell = [
@@ -207,6 +214,7 @@ class GameBloc {
       }
     });
 
+    // TODO pass tetrimino.value as param
     //if 2 overlaps on same axis: no rotation
     if ((topOverlap.isNotEmpty && bottomOverlap.isNotEmpty) ||
         (leftOverlap.isNotEmpty && rightOverlap.isNotEmpty)) {
@@ -218,12 +226,7 @@ class GameBloc {
         rightOverlap.isEmpty &&
         topOverlap.isEmpty &&
         bottomOverlap.isEmpty) {
-      var pushedTetrimino = List.from(result);
-      int pushValue =
-          _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
-      pushedTetrimino.forEach((cell) {
-        cell[0] += pushValue;
-      });
+      var pushedTetrimino = _pushFromLeft(result, leftOverlap);
       result = pushedTetrimino;
     }
 
@@ -232,12 +235,7 @@ class GameBloc {
         leftOverlap.isEmpty &&
         topOverlap.isEmpty &&
         bottomOverlap.isEmpty) {
-      var pushedTetrimino = List.from(result);
-      int pushValue =
-          _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
-      pushedTetrimino.forEach((cell) {
-        cell[0] += pushValue;
-      });
+      var pushedTetrimino = _pushFromRight(result, rightOverlap);
       result = pushedTetrimino;
     }
 
@@ -246,12 +244,7 @@ class GameBloc {
         topOverlap.isEmpty &&
         leftOverlap.isEmpty &&
         rightOverlap.isEmpty) {
-      var pushedTetrimino = List.from(result);
-      int pushValue =
-          _determineVerticalPushValue(bottomOverlap, isBottom: true);
-      pushedTetrimino.forEach((cell) {
-        cell[1] += pushValue;
-      });
+      var pushedTetrimino = _pushFromBottom(result, bottomOverlap);
       result = pushedTetrimino;
     }
 
@@ -260,46 +253,152 @@ class GameBloc {
         bottomOverlap.isEmpty &&
         leftOverlap.isEmpty &&
         rightOverlap.isEmpty) {
-      var pushedTetrimino = List.from(result);
-      int pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
-      pushedTetrimino.forEach((cell) {
-        cell[1] += pushValue;
-      });
+      var pushedTetrimino = _pushFromTop(result, topOverlap);
       result = pushedTetrimino;
     }
 
-    // if overlap on X and Y axis, check direction of push:
-    // if another overlapping block share one coord, push in this direction
+    /// Push with top_left ambiguity
+    else if (topOverlap.isNotEmpty &&
+        leftOverlap.isNotEmpty &&
+        bottomOverlap.isEmpty &&
+        rightOverlap.isEmpty) {
+      if (leftOverlap.length > 1) {
+        var pushedTetrimino = _pushFromLeft(result, leftOverlap);
+        result = pushedTetrimino;
+      } else if (topOverlap.length > 1) {
+        var pushedTetrimino = _pushFromTop(result, topOverlap);
+        result = pushedTetrimino;
+      } else if (leftOverlap.length == 1 && topOverlap.length == 1) {
+        var pushedTetrimino = _pushFromLeft(result, leftOverlap);
+        var overlappingAfterPush = _findOverlappingCells(pushedTetrimino);
 
-    // "double block is alone", try pushing horizontally first, if it doesn't work, push vertically
+        // if overlap after pushing on the side, do vertical push
+        if (overlappingAfterPush.isEmpty) {
+          result = pushedTetrimino;
+          // overlap after this push will be done before return
+        } else {
+          pushedTetrimino = _pushFromTop(result, topOverlap);
+          result = pushedTetrimino;
+        }
+      }
+    }
 
-    // Map<String, List<int>> overlappingCells = detectCellOverlap(tetrimino);
+    /// Push with bottom left ambiguity
+    else if (bottomOverlap.isNotEmpty &&
+        leftOverlap.isNotEmpty &&
+        topOverlap.isEmpty &&
+        rightOverlap.isEmpty) {
+      if (leftOverlap.length > 1) {
+        var pushedTetrimino = _pushFromLeft(result, leftOverlap);
+        result = pushedTetrimino;
+      } else if (bottomOverlap.length > 1) {
+        var pushedTetrimino = _pushFromTop(result, bottomOverlap);
+        result = pushedTetrimino;
+      } else if (leftOverlap.length == 1 && bottomOverlap.length == 1) {
+        var pushedTetrimino = _pushFromLeft(result, leftOverlap);
+        var overlappingAfterPush = _findOverlappingCells(pushedTetrimino);
+        if (overlappingAfterPush.isEmpty) {
+          result = pushedTetrimino;
+        } else {
+          pushedTetrimino = _pushFromTop(result, bottomOverlap);
+          result = pushedTetrimino;
+        }
+      }
+    }
 
-    /*  bool leftWall = overlappingCells['leftWall'].isNotEmpty;
-    bool rightWall = overlappingCells['rightWall'].isNotEmpty;
-    bool rightBlock = overlappingCells['rightBlock'].isNotEmpty;
-    bool leftBlock = overlappingCells['leftBlock'].isNotEmpty;
-    bool bottom = overlappingCells['bottom'].isNotEmpty;
-    bool bottomBlock = overlappingCells['bottomBlock'].isNotEmpty;
-    bool topBlock = overlappingCells['topBlock'].isNotEmpty;
+    /// Push with top right ambiguity
+    else if (topOverlap.isNotEmpty &&
+        rightOverlap.isNotEmpty &&
+        bottomOverlap.isEmpty &&
+        leftOverlap.isEmpty) {
+      if (rightOverlap.length > 1) {
+        var pushedTetrimino = _pushFromLeft(result, rightOverlap);
+        result = pushedTetrimino;
+      } else if (topOverlap.length > 1) {
+        var pushedTetrimino = _pushFromTop(result, topOverlap);
+        result = pushedTetrimino;
+      } else if (rightOverlap.length == 1 && topOverlap.length == 1) {
+        var pushedTetrimino = _pushFromLeft(result, rightOverlap);
+        var overlappingAfterPush = _findOverlappingCells(pushedTetrimino);
+        if (overlappingAfterPush.isEmpty) {
+          result = pushedTetrimino;
+        } else {
+          pushedTetrimino = _pushFromTop(result, topOverlap);
+          result = pushedTetrimino;
+        }
+      }
+    }
 
-    // don't rotate if no space
-    if ((leftWall && rightBlock) ||
-        (rightWall && leftBlock) ||
-        (leftBlock && rightBlock) ||
-        (bottom && topBlock) ||
-        (bottomBlock && topBlock)) {
-      // TODO pass stream value as param for unit testing
-      return _tetrimino.value;
-      // if rotate into wall or block, push in opposite direction
-      //left side push
-    } else if ((leftWall && !rightBlock) ||
-        (leftBlock && !rightBlock && !rightWall)) {
-      result.forEach((cell) {
-        cell[1]++;
-      });
-    }*/
+    ///Push with bottom right ambiguity
+    else if (bottomOverlap.isNotEmpty &&
+        rightOverlap.isNotEmpty &&
+        topOverlap.isEmpty &&
+        leftOverlap.isEmpty) {
+      if (rightOverlap.length > 1) {
+        var pushedTetrimino = _pushFromLeft(result, rightOverlap);
+        result = pushedTetrimino;
+      } else if (bottomOverlap.length > 1) {
+        var pushedTetrimino = _pushFromTop(result, bottomOverlap);
+        result = pushedTetrimino;
+      } else if (rightOverlap.length == 1 && bottomOverlap.length == 1) {
+        var pushedTetrimino = _pushFromLeft(result, rightOverlap);
+        var overlappingAfterPush = _findOverlappingCells(pushedTetrimino);
+        if (overlappingAfterPush.isEmpty) {
+          result = pushedTetrimino;
+        } else {
+          pushedTetrimino = _pushFromTop(result, bottomOverlap);
+          result = pushedTetrimino;
+        }
+      }
+    }
+    // TODO test for overlap with new coordinates before returning
+    var controlCellsAfterPush = _findOverlappingCells(result);
+    if (controlCellsAfterPush.isNotEmpty) {
+      result = _tetrimino.value;
+    }
     return result;
+  }
+
+  List<List<int>> _pushFromRight(
+      List<List<int>> coordinates, List<List<int>> controlData) {
+    var pushedTetrimino = List.from(coordinates);
+    int pushValue =
+        _determineHorizontalPushValue(controlData, isLeftSide: false);
+    pushedTetrimino.forEach((cell) {
+      cell[0] += pushValue;
+    });
+    return pushedTetrimino;
+  }
+
+  List<List<int>> _pushFromLeft(
+      List<List<int>> coordinates, List<List<int>> controlData) {
+    var pushedTetrimino = List.from(coordinates);
+    int pushValue =
+        _determineHorizontalPushValue(controlData, isLeftSide: true);
+    pushedTetrimino.forEach((cell) {
+      cell[0] += pushValue;
+    });
+    return pushedTetrimino;
+  }
+
+  List<List<int>> _pushFromTop(
+      List<List<int>> coordinates, List<List<int>> controlData) {
+    var pushedTetrimino = List.from(coordinates);
+    int pushValue = _determineVerticalPushValue(controlData, isBottom: false);
+    pushedTetrimino.forEach((cell) {
+      cell[1] += pushValue;
+    });
+    return pushedTetrimino;
+  }
+
+  List<List<int>> _pushFromBottom(
+      List<List<int>> coordinates, List<List<int>> controlData) {
+    var pushedTetrimino = List.from(coordinates);
+    int pushValue = _determineVerticalPushValue(controlData, isBottom: true);
+    pushedTetrimino.forEach((cell) {
+      cell[1] += pushValue;
+    });
+    return pushedTetrimino;
   }
 
   int _determineHorizontalPushValue(List<List<int>> overlappingCells,
