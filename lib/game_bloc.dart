@@ -178,19 +178,36 @@ class GameBloc {
     return overlappingCells;
   }
 
+  List<int> _updateCenter(
+      List<int> center, int pushValue, bool isPushHorizontal) {
+    print('center old value : ${center.toString()}');
+    if (isPushHorizontal) {
+      center[0] -= pushValue;
+    } else {
+      center[1] -= pushValue;
+    }
+    print('center new value : ${center.toString()}');
+    return center;
+  }
+
   // TODO bug fix : update _center.value
 // TODO change name to account for return type
   List<List<int>> rotateContactDetection(List<List<int>> tetrimino) {
     List<List<int>> result = List<List<int>>.from(tetrimino);
+    print('result initial value: ${result.toString()}');
     List<List<int>> overlappingCells = [];
     List<List<int>> leftOverlap = [];
     List<List<int>> rightOverlap = [];
     List<List<int>> topOverlap = [];
     List<List<int>> bottomOverlap = [];
+    int pushValue = 0;
+    bool isPushHorizontal = true;
 
     // check if new coordinates are out of bounds or overlap with a block
     overlappingCells = _findOverlappingCells(result);
     if (overlappingCells.isEmpty) {
+      print('center in free rotation: ${_center.value.toString()}');
+      print('coordinates in free rotation : ${result.toString()}');
       print('rotation: all clear');
       return result;
     }
@@ -229,10 +246,14 @@ class GameBloc {
         rightOverlap.isEmpty &&
         topOverlap.isEmpty &&
         bottomOverlap.isEmpty) {
-      var pushedTetrimino = _pushFromLeft(result, leftOverlap);
-      print('before push: ${result.toString()}');
+      print('before left push: ${result.toString()}');
+      pushValue = _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
+      var pushedTetrimino = _pushFromLeft(result, pushValue);
+      print('is result changed by pushFromLeft: ${result.toString()}');
+      print('pushedTetrimino before left push: ${pushedTetrimino.toString()}');
       result = pushedTetrimino;
-      print('after push: ${result.toString()}');
+      print('after left push: ${result.toString()}');
+      isPushHorizontal = true;
       print('rotation: pushed from left');
     }
 
@@ -241,8 +262,13 @@ class GameBloc {
         leftOverlap.isEmpty &&
         topOverlap.isEmpty &&
         bottomOverlap.isEmpty) {
-      var pushedTetrimino = _pushFromRight(result, rightOverlap);
+      pushValue =
+          _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
+      var pushedTetrimino = _pushFromRight(result, pushValue);
+      print('before push: ${result.toString()}');
       result = pushedTetrimino;
+      print('after push: ${result.toString()}');
+      isPushHorizontal = true;
       print('rotation: pushed from right');
     }
 
@@ -251,8 +277,12 @@ class GameBloc {
         topOverlap.isEmpty &&
         leftOverlap.isEmpty &&
         rightOverlap.isEmpty) {
-      var pushedTetrimino = _pushFromBottom(result, bottomOverlap);
+      pushValue = _determineVerticalPushValue(bottomOverlap, isBottom: true);
+      var pushedTetrimino = _pushFromBottom(result, pushValue);
+      print('before push: ${result.toString()}');
       result = pushedTetrimino;
+      print('after push: ${result.toString()}');
+      isPushHorizontal = false;
       print('rotation: pushed from bottom');
     }
 
@@ -261,8 +291,12 @@ class GameBloc {
         bottomOverlap.isEmpty &&
         leftOverlap.isEmpty &&
         rightOverlap.isEmpty) {
-      var pushedTetrimino = _pushFromTop(result, topOverlap);
+      pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
+      var pushedTetrimino = _pushFromTop(result, pushValue);
+      print('before push: ${result.toString()}');
       result = pushedTetrimino;
+      print('after push: ${result.toString()}');
+      isPushHorizontal = false;
       print('rotation: pushed from top');
     }
 
@@ -272,23 +306,37 @@ class GameBloc {
         bottomOverlap.isEmpty &&
         rightOverlap.isEmpty) {
       if (leftOverlap.length > 1) {
-        var pushedTetrimino = _pushFromLeft(result, leftOverlap);
+        pushValue =
+            _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
+        var pushedTetrimino = _pushFromLeft(result, pushValue);
+        print('before push: ${result.toString()}');
         result = pushedTetrimino;
+        print('after push: ${result.toString()}');
+        isPushHorizontal = true;
       } else if (topOverlap.length > 1) {
-        var pushedTetrimino = _pushFromTop(result, topOverlap);
+        pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
+        var pushedTetrimino = _pushFromTop(result, pushValue);
+        print('before push: ${result.toString()}');
         result = pushedTetrimino;
+        print('after push: ${result.toString()}');
+        isPushHorizontal = false;
       } else if (leftOverlap.length == 1 && topOverlap.length == 1) {
-        var pushedTetrimino = _pushFromLeft(result, leftOverlap);
+        pushValue =
+            _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
+        var pushedTetrimino = _pushFromLeft(result, pushValue);
         var overlappingAfterPush = _findOverlappingCells(pushedTetrimino);
 
         // if overlap after pushing on the side, do vertical push
-        if (overlappingAfterPush.isNotEmpty) {
+        if (overlappingAfterPush.isEmpty) {
           result = pushedTetrimino;
+          isPushHorizontal = true;
           print('rotation: try from left');
           // overlap after this push will be done before return
         } else {
-          pushedTetrimino = _pushFromTop(result, topOverlap);
+          pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
+          var pushedTetrimino = _pushFromTop(result, pushValue);
           result = pushedTetrimino;
+          isPushHorizontal = false;
           print('rotation: push from top after left fail');
         }
       }
@@ -300,20 +348,34 @@ class GameBloc {
         topOverlap.isEmpty &&
         rightOverlap.isEmpty) {
       if (leftOverlap.length > 1) {
-        var pushedTetrimino = _pushFromLeft(result, leftOverlap);
+        pushValue =
+            _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
+        var pushedTetrimino = _pushFromLeft(result, pushValue);
+        print('before push: ${result.toString()}');
         result = pushedTetrimino;
+        print('after push: ${result.toString()}');
+        isPushHorizontal = true;
       } else if (bottomOverlap.length > 1) {
-        var pushedTetrimino = _pushFromTop(result, bottomOverlap);
+        pushValue = _determineVerticalPushValue(topOverlap, isBottom: true);
+        var pushedTetrimino = _pushFromBottom(result, pushValue);
+        print('before push: ${result.toString()}');
         result = pushedTetrimino;
+        print('after push: ${result.toString()}');
+        isPushHorizontal = false;
       } else if (leftOverlap.length == 1 && bottomOverlap.length == 1) {
-        var pushedTetrimino = _pushFromLeft(result, leftOverlap);
+        pushValue =
+            _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
+        var pushedTetrimino = _pushFromLeft(result, pushValue);
         var overlappingAfterPush = _findOverlappingCells(pushedTetrimino);
-        if (overlappingAfterPush.isNotEmpty) {
+        if (overlappingAfterPush.isEmpty) {
           result = pushedTetrimino;
+          isPushHorizontal = true;
           print('rotation: try from left');
         } else {
-          pushedTetrimino = _pushFromTop(result, bottomOverlap);
+          pushValue = _determineVerticalPushValue(topOverlap, isBottom: true);
+          var pushedTetrimino = _pushFromBottom(result, pushValue);
           result = pushedTetrimino;
+          isPushHorizontal = false;
           print('rotation: push from bottom after left fail');
         }
       }
@@ -325,20 +387,28 @@ class GameBloc {
         bottomOverlap.isEmpty &&
         leftOverlap.isEmpty) {
       if (rightOverlap.length > 1) {
-        var pushedTetrimino = _pushFromLeft(result, rightOverlap);
+        pushValue =
+            _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
+        var pushedTetrimino = _pushFromRight(result, pushValue);
         result = pushedTetrimino;
       } else if (topOverlap.length > 1) {
-        var pushedTetrimino = _pushFromTop(result, topOverlap);
+        pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
+        var pushedTetrimino = _pushFromTop(result, pushValue);
         result = pushedTetrimino;
       } else if (rightOverlap.length == 1 && topOverlap.length == 1) {
-        var pushedTetrimino = _pushFromLeft(result, rightOverlap);
+        pushValue =
+            _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
+        var pushedTetrimino = _pushFromRight(result, pushValue);
         var overlappingAfterPush = _findOverlappingCells(pushedTetrimino);
-        if (overlappingAfterPush.isNotEmpty) {
+        if (overlappingAfterPush.isEmpty) {
           result = pushedTetrimino;
+          isPushHorizontal = true;
           print('rotation: try from right');
         } else {
-          pushedTetrimino = _pushFromTop(result, topOverlap);
+          pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
+          var pushedTetrimino = _pushFromTop(result, pushValue);
           result = pushedTetrimino;
+          isPushHorizontal = false;
           print('rotation: push from bottom after right fail');
         }
       }
@@ -350,20 +420,28 @@ class GameBloc {
         topOverlap.isEmpty &&
         leftOverlap.isEmpty) {
       if (rightOverlap.length > 1) {
-        var pushedTetrimino = _pushFromLeft(result, rightOverlap);
+        pushValue =
+            _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
+        var pushedTetrimino = _pushFromRight(result, pushValue);
         result = pushedTetrimino;
       } else if (bottomOverlap.length > 1) {
-        var pushedTetrimino = _pushFromTop(result, bottomOverlap);
+        pushValue = _determineVerticalPushValue(topOverlap, isBottom: true);
+        var pushedTetrimino = _pushFromBottom(result, pushValue);
         result = pushedTetrimino;
       } else if (rightOverlap.length == 1 && bottomOverlap.length == 1) {
-        var pushedTetrimino = _pushFromLeft(result, rightOverlap);
+        pushValue =
+            _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
+        var pushedTetrimino = _pushFromRight(result, pushValue);
         var overlappingAfterPush = _findOverlappingCells(pushedTetrimino);
-        if (overlappingAfterPush.isNotEmpty) {
+        if (overlappingAfterPush.isEmpty) {
           result = pushedTetrimino;
+          isPushHorizontal = true;
           print('rotation: try from right');
         } else {
-          pushedTetrimino = _pushFromTop(result, bottomOverlap);
+          pushValue = _determineVerticalPushValue(topOverlap, isBottom: true);
+          var pushedTetrimino = _pushFromBottom(result, pushValue);
           result = pushedTetrimino;
+          isPushHorizontal = false;
           print('rotation: push from top after right fail');
         }
       }
@@ -373,49 +451,43 @@ class GameBloc {
     if (controlCellsAfterPush.isNotEmpty) {
       result = _tetrimino.value;
       print('rotation: test after push failed');
+    } else {
+      _updateCenter(_center.value, pushValue, isPushHorizontal);
     }
     return result;
   }
 
-  List<List<int>> _pushFromRight(
-      List<List<int>> coordinates, List<List<int>> controlData) {
+  List<List<int>> _pushFromRight(List<List<int>> coordinates, int pushValue) {
     var pushedTetrimino = List<List<int>>.from(coordinates);
-    int pushValue =
-        _determineHorizontalPushValue(controlData, isLeftSide: false);
     pushedTetrimino.forEach((cell) {
       cell[0] -= pushValue;
     });
     return pushedTetrimino;
   }
 
-  List<List<int>> _pushFromLeft(
-      List<List<int>> coordinates, List<List<int>> controlData) {
+  // TODO investigate why this changes the value of coordinates
+  //  => because the new list created contains
+  //  the same List elements as the original. So the copy is essentially useless
+  List<List<int>> _pushFromLeft(List<List<int>> coordinates, int pushValue) {
     var pushedTetrimino = List<List<int>>.from(coordinates);
-    int pushValue =
-        _determineHorizontalPushValue(controlData, isLeftSide: true);
-    print("pushValue left: $pushValue");
     pushedTetrimino.forEach((cell) {
-      print('cell : $cell');
       cell[0] -= pushValue;
-      print('cell:$cell');
     });
+    print('original list: ${coordinates.toString()}');
+    print('cloned updated list: ${pushedTetrimino.toString()}');
     return pushedTetrimino;
   }
 
-  List<List<int>> _pushFromTop(
-      List<List<int>> coordinates, List<List<int>> controlData) {
+  List<List<int>> _pushFromBottom(List<List<int>> coordinates, int pushValue) {
     var pushedTetrimino = List<List<int>>.from(coordinates);
-    int pushValue = _determineVerticalPushValue(controlData, isBottom: false);
     pushedTetrimino.forEach((cell) {
       cell[1] -= pushValue;
     });
     return pushedTetrimino;
   }
 
-  List<List<int>> _pushFromBottom(
-      List<List<int>> coordinates, List<List<int>> controlData) {
+  List<List<int>> _pushFromTop(List<List<int>> coordinates, int pushValue) {
     var pushedTetrimino = List<List<int>>.from(coordinates);
-    int pushValue = _determineVerticalPushValue(controlData, isBottom: true);
     pushedTetrimino.forEach((cell) {
       cell[1] -= pushValue;
     });

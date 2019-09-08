@@ -18,10 +18,12 @@ Compile and run file
 [x] on contact, allow delay before locking piece
 [x] rotate piece
 [x] wall & block detection
-[] wall & block detection on rotation
-[] t-spin
+[x] wall & block detection on rotation
+[] hard drop
+[x] t-spin
 [] ghost piece
 [] pause game
+
 
 ## UX features
 [] background music
@@ -32,7 +34,14 @@ Compile and run file
 [] start screen
 [] settings screen
 
+## Other improvements
+[] Refactor variable names for clarity
+[] DRY up code
+[] Refactor Bloc
+[] use provider library, or Didier Boelens's BlocProvider
 
 
-
+## Known bugs
+[] rotation wall detection flaky
+[] rotation of I block not correctly centered
 
