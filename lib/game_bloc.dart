@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:frideos_core/frideos_core.dart';
+import 'package:tetris/movement/detect.dart';
 import 'package:tetris/randomizer.dart';
 import 'package:tetris/tetriminos/tetriminos.dart';
 
@@ -165,10 +166,11 @@ class GameBloc {
     return;
   }
 
-  List<List<int>> _findOverlappingCells(List<List<int>> tetrimino) {
+  /* List<List<int>> _findOverlappingCells(
+      List<List<int>> tetrimino, Map<List<int>, BlockType> grid) {
     List<List<int>> overlappingCells = [];
     tetrimino.forEach((cell) {
-      BlockType cellType = findCell(cell, _grid.value);
+      BlockType cellType = findCell(cell, grid);
       if (cellType == BlockType.locked) {
         overlappingCells.add(cell);
       } else if ((cell[0] < 0) || (cell[0] > 9) || cell[1] < 0) {
@@ -176,9 +178,9 @@ class GameBloc {
       }
     });
     return overlappingCells;
-  }
+  }*/
 
-  List<int> _updateCenter(
+/*  List<int> _updateCenter(
       List<int> center, int pushValue, bool isPushHorizontal) {
     print('center old value : ${center.toString()}');
     if (isPushHorizontal) {
@@ -188,12 +190,11 @@ class GameBloc {
     }
     print('center new value : ${center.toString()}');
     return center;
-  }
+  }*/
 
-  // TODO bug fix : update _center.value
-// TODO change name to account for return type
-  List<List<int>> rotateContactDetection(List<List<int>> tetrimino) {
-    List<List<int>> result = List<List<int>>.from(tetrimino);
+/*// TODO change name to account for return type
+  List<List<int>> rotateContactDetection(
+      List<List<int>> tetrimino, List<List<int>> initialTetriminoPosition) {
     List<List<int>> overlappingCells = [];
     List<List<int>> leftOverlap = [];
     List<List<int>> rightOverlap = [];
@@ -203,9 +204,9 @@ class GameBloc {
     bool isPushHorizontal = true;
 
     // check if new coordinates are out of bounds or overlap with a block
-    overlappingCells = _findOverlappingCells(result);
+    overlappingCells = _findOverlappingCells(tetrimino, _grid.value);
     if (overlappingCells.isEmpty) {
-      return result;
+      return tetrimino;
     }
 
     // TODO put in separate func
@@ -229,11 +230,10 @@ class GameBloc {
       }
     });
 
-    // TODO pass tetrimino.value as param
     //if 2 overlaps on same axis: no rotation
     if ((topOverlap.isNotEmpty && bottomOverlap.isNotEmpty) ||
         (leftOverlap.isNotEmpty && rightOverlap.isNotEmpty)) {
-      return _tetrimino.value;
+      return initialTetriminoPosition;
     }
 
     /// Push from the left, no y axis ambiguity
@@ -242,7 +242,7 @@ class GameBloc {
         topOverlap.isEmpty &&
         bottomOverlap.isEmpty) {
       pushValue = _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
-      result = _pushFromLeft(result, pushValue);
+      tetrimino = _pushFromLeft(tetrimino, pushValue);
       isPushHorizontal = true;
     }
 
@@ -253,7 +253,7 @@ class GameBloc {
         bottomOverlap.isEmpty) {
       pushValue =
           _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
-      result = _pushFromRight(result, pushValue);
+      tetrimino = _pushFromRight(tetrimino, pushValue);
       isPushHorizontal = true;
     }
 
@@ -263,7 +263,7 @@ class GameBloc {
         leftOverlap.isEmpty &&
         rightOverlap.isEmpty) {
       pushValue = _determineVerticalPushValue(bottomOverlap, isBottom: true);
-      result = _pushFromBottom(result, pushValue);
+      tetrimino = _pushFromBottom(tetrimino, pushValue);
       isPushHorizontal = false;
     }
 
@@ -273,7 +273,7 @@ class GameBloc {
         leftOverlap.isEmpty &&
         rightOverlap.isEmpty) {
       pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
-      result = _pushFromTop(result, pushValue);
+      tetrimino = _pushFromTop(tetrimino, pushValue);
       isPushHorizontal = false;
     }
 
@@ -285,17 +285,18 @@ class GameBloc {
       if (leftOverlap.length > 1) {
         pushValue =
             _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
-        result = _pushFromLeft(result, pushValue);
+        tetrimino = _pushFromLeft(tetrimino, pushValue);
         isPushHorizontal = true;
       } else if (topOverlap.length > 1) {
         pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
-        result = _pushFromTop(result, pushValue);
+        tetrimino = _pushFromTop(tetrimino, pushValue);
         isPushHorizontal = false;
       } else if (leftOverlap.length == 1 && topOverlap.length == 1) {
         pushValue =
             _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
-        result = _pushFromLeft(result, pushValue);
-        var overlappingAfterPush = _findOverlappingCells(result);
+        tetrimino = _pushFromLeft(tetrimino, pushValue);
+        var overlappingAfterPush =
+            _findOverlappingCells(tetrimino, _grid.value);
 
         // if overlap after pushing on the side, do vertical push
         if (overlappingAfterPush.isEmpty) {
@@ -303,7 +304,7 @@ class GameBloc {
           // overlap after this push will be done before return
         } else {
           pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
-          result = _pushFromTop(result, pushValue);
+          tetrimino = _pushFromTop(tetrimino, pushValue);
           isPushHorizontal = false;
         }
       }
@@ -317,22 +318,23 @@ class GameBloc {
       if (leftOverlap.length > 1) {
         pushValue =
             _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
-        result = _pushFromLeft(result, pushValue);
+        tetrimino = _pushFromLeft(tetrimino, pushValue);
         isPushHorizontal = true;
       } else if (bottomOverlap.length > 1) {
         pushValue = _determineVerticalPushValue(topOverlap, isBottom: true);
-        result = _pushFromBottom(result, pushValue);
+        tetrimino = _pushFromBottom(tetrimino, pushValue);
         isPushHorizontal = false;
       } else if (leftOverlap.length == 1 && bottomOverlap.length == 1) {
         pushValue =
             _determineHorizontalPushValue(leftOverlap, isLeftSide: true);
-        result = _pushFromLeft(result, pushValue);
-        var overlappingAfterPush = _findOverlappingCells(result);
+        tetrimino = _pushFromLeft(tetrimino, pushValue);
+        var overlappingAfterPush =
+            _findOverlappingCells(tetrimino, _grid.value);
         if (overlappingAfterPush.isEmpty) {
           isPushHorizontal = true;
         } else {
           pushValue = _determineVerticalPushValue(topOverlap, isBottom: true);
-          result = _pushFromBottom(result, pushValue);
+          tetrimino = _pushFromBottom(tetrimino, pushValue);
           isPushHorizontal = false;
         }
       }
@@ -346,20 +348,21 @@ class GameBloc {
       if (rightOverlap.length > 1) {
         pushValue =
             _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
-        result = _pushFromRight(result, pushValue);
+        tetrimino = _pushFromRight(tetrimino, pushValue);
       } else if (topOverlap.length > 1) {
         pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
-        result = _pushFromTop(result, pushValue);
+        tetrimino = _pushFromTop(tetrimino, pushValue);
       } else if (rightOverlap.length == 1 && topOverlap.length == 1) {
         pushValue =
             _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
-        result = _pushFromRight(result, pushValue);
-        var overlappingAfterPush = _findOverlappingCells(result);
+        tetrimino = _pushFromRight(tetrimino, pushValue);
+        var overlappingAfterPush =
+            _findOverlappingCells(tetrimino, _grid.value);
         if (overlappingAfterPush.isEmpty) {
           isPushHorizontal = true;
         } else {
           pushValue = _determineVerticalPushValue(topOverlap, isBottom: false);
-          result = _pushFromTop(result, pushValue);
+          tetrimino = _pushFromTop(tetrimino, pushValue);
           isPushHorizontal = false;
         }
       }
@@ -373,38 +376,37 @@ class GameBloc {
       if (rightOverlap.length > 1) {
         pushValue =
             _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
-        result = _pushFromRight(result, pushValue);
+        tetrimino = _pushFromRight(tetrimino, pushValue);
       } else if (bottomOverlap.length > 1) {
-        pushValue = _determineVerticalPushValue(topOverlap, isBottom: true);
-        result = _pushFromBottom(result, pushValue);
+        pushValue = _determineVerticalPushValue(bottomOverlap, isBottom: true);
+        tetrimino = _pushFromBottom(tetrimino, pushValue);
       } else if (rightOverlap.length == 1 && bottomOverlap.length == 1) {
         pushValue =
             _determineHorizontalPushValue(rightOverlap, isLeftSide: false);
-        result = _pushFromRight(result, pushValue);
-        var overlappingAfterPush = _findOverlappingCells(result);
+        tetrimino = _pushFromRight(tetrimino, pushValue);
+        var overlappingAfterPush =
+            _findOverlappingCells(tetrimino, _grid.value);
         if (overlappingAfterPush.isEmpty) {
           isPushHorizontal = true;
         } else {
-          pushValue = _determineVerticalPushValue(topOverlap, isBottom: true);
-          result = _pushFromBottom(result, pushValue);
+          pushValue =
+              _determineVerticalPushValue(bottomOverlap, isBottom: true);
+          tetrimino = _pushFromBottom(tetrimino, pushValue);
           isPushHorizontal = false;
         }
       }
     }
     // testing coordinates after push, if still overlap, don't rotate
-    var controlCellsAfterPush = _findOverlappingCells(result);
+    var controlCellsAfterPush = _findOverlappingCells(tetrimino, _grid.value);
     if (controlCellsAfterPush.isNotEmpty) {
-      result = _tetrimino.value;
+      tetrimino = initialTetriminoPosition;
     } else {
       _updateCenter(_center.value, pushValue, isPushHorizontal);
     }
-    return result;
-  }
+    return tetrimino;
+  }*/
 
-  // TODO investigate why this changes the value of coordinates
-  //  => because the new list created contains
-  //  the same List elements as the original. So the copy is essentially useless
-  List<List<int>> _pushFromLeft(List<List<int>> coordinates, int pushValue) {
+  /*List<List<int>> _pushFromLeft(List<List<int>> coordinates, int pushValue) {
     coordinates.forEach((cell) {
       cell[0] -= pushValue;
     });
@@ -430,9 +432,9 @@ class GameBloc {
       cell[1] -= pushValue;
     });
     return coordinates;
-  }
+  }*/
 
-  int _determineHorizontalPushValue(List<List<int>> overlappingCells,
+/*  int _determineHorizontalPushValue(List<List<int>> overlappingCells,
       {@required bool isLeftSide}) {
     int pushValue = 0;
     if (overlappingCells.length > 1) {
@@ -468,7 +470,7 @@ class GameBloc {
     }
     pushValue = overlappingCells[0][1];
     return pushValue;
-  }
+  }*/
 
   // TODO add left or right param
   List<List<int>> _obtainRotatedCoordinates() {
@@ -500,7 +502,7 @@ class GameBloc {
 
       // Wall detection
       updatedCoordinatesOnGrid =
-          rotateContactDetection(updatedCoordinatesOnGrid);
+          rotateContactDetection(updatedCoordinatesOnGrid, _tetrimino.value);
 
       //update tetrimino stream
       _tetrimino.value = updatedCoordinatesOnGrid;
@@ -544,31 +546,13 @@ class GameBloc {
     }
   }
 
-  // TODO refactor all reachBlock functions for clarity
   void checkContactOnSide() {
-    var reachLeftLimit =
-        _tetrimino.value.firstWhere((cell) => cell[0] == 0, orElse: () => []);
-    var reachRightLimit =
-        _tetrimino.value.firstWhere((cell) => cell[0] == 9, orElse: () => []);
-    var reachBlockOnLeft = _tetrimino.value.firstWhere((cell) {
-      if (cell[0] != 0) {
-        List<int> nextBlock = [cell[0] - 1, cell[1]];
-        BlockType nextBlockType = findCell(nextBlock, _grid.value);
-        return ((nextBlockType == BlockType.locked &&
-            _tetrimino.value.contains(nextBlock) == false));
-      }
-      return false;
-    }, orElse: () => []);
-
-    var reachBlockOnRight = _tetrimino.value.firstWhere((cell) {
-      if (cell[0] != 9) {
-        List<int> nextBlock = [cell[0] + 1, cell[1]];
-        BlockType nextBlockType = findCell(nextBlock, _grid.value);
-        return ((nextBlockType == BlockType.locked &&
-            _tetrimino.value.contains(nextBlock) == false));
-      }
-      return false;
-    }, orElse: () => []);
+    var reachLeftLimit = Detect.reachLeftLimit(_tetrimino.value);
+    var reachRightLimit = Detect.reachRightLimit(_tetrimino.value);
+    var reachBlockOnLeft =
+        Detect.reachBlockOnLeft(_tetrimino.value, _grid.value);
+    var reachBlockOnRight =
+        Detect.reachBlockOnRight(_tetrimino.value, _grid.value);
 
     if (reachLeftLimit.isNotEmpty || reachBlockOnLeft.isNotEmpty) {
       _goLeft.value = false;
@@ -580,22 +564,9 @@ class GameBloc {
   }
 
   void checkContactBelow() {
-    var reachBottom =
-        _tetrimino.value.firstWhere((cell) => cell[1] == 0, orElse: () => []);
-    var reachTop = _tetrimino.value.firstWhere((cell) {
-      List<int> nextBlock = [cell[0], cell[1] - 1];
-      BlockType nextBlockType = findCell(nextBlock, _grid.value);
-      return (nextBlock[1] == 20 &&
-          nextBlockType == BlockType.locked &&
-          _tetrimino.value.contains(nextBlock) == false);
-    }, orElse: () => []);
-
-    var reachOtherBlock = _tetrimino.value.firstWhere((cell) {
-      List<int> nextBlock = [cell[0], cell[1] - 1];
-      BlockType nextBlockType = findCell(nextBlock, _grid.value);
-      return (nextBlockType == BlockType.locked &&
-          _tetrimino.value.contains(nextBlock) == false);
-    }, orElse: () => []);
+    var reachBottom = Detect.reachBottom(_tetrimino.value);
+    var reachTop = Detect.reachTop(_tetrimino.value, _grid.value);
+    var reachOtherBlock = Detect.reachOtherBlock(_tetrimino.value, _grid.value);
 
     if (reachTop.isNotEmpty) {
       _gameOver.value = true;
@@ -614,7 +585,7 @@ class GameBloc {
     return;
   }
 
-  List<int> _determineMovementValues(Direction direction, List<int> cell) {
+  /* List<int> _determineMovementValues(Direction direction, List<int> cell) {
     List<int> movementValues = [];
     switch (direction) {
       case Direction.down:
@@ -635,7 +606,7 @@ class GameBloc {
         }
     }
     return movementValues;
-  }
+  }*/
 
   void _updateTetriminoPositionInStream(Direction direction) {
     _tetrimino.value.forEach((cell) {
@@ -646,7 +617,7 @@ class GameBloc {
     });
   }
 
-  List<List<int>> _createListOfMatchingLists(
+  /* List<List<int>> _createListOfMatchingLists(
       List<List<int>> list1, List<List<int>> list2) {
     List<List<int>> cellsToKeep = [];
     list1.forEach((oldCell) {
@@ -656,15 +627,15 @@ class GameBloc {
       }
     });
     return cellsToKeep;
-  }
+  }*/
 
 // TODO refactor variable names for clarity
-  List<int> _matchLists(List<int> list, List<List<int>> list2D) {
+  /*List<int> _matchLists(List<int> list, List<List<int>> list2D) {
     var matchingCell = list2D
         .firstWhere((cell) => compareList.equals(cell, list), orElse: () => []);
 
     return matchingCell;
-  }
+  }*/
 
   void _updateCell(
     List<int> coordinates,
@@ -681,7 +652,7 @@ class GameBloc {
     return;
   }
 
-  BlockType findCell(
+/*  BlockType findCell(
     List<int> coordinates,
     Map<List<int>, BlockType> grid,
   ) {
@@ -693,7 +664,7 @@ class GameBloc {
       }
     });
     return target;
-  }
+  }*/
 
 // TODO get width and height from widget i.o. hard coded in function
   void clearLines(Map<List<int>, BlockType> grid) {
@@ -798,65 +769,6 @@ class GameBloc {
       }
       _landed.value = false;
     }
-  }
-
-  // TODO fix this code, it doesn't detect anything
-  Map<String, List<int>> detectCellOverlap(List<List<int>> tetrimino) {
-    Map<String, List<int>> result = {};
-    List<int> leftWallOverlap =
-        tetrimino.firstWhere((cell) => cell[0] < 0, orElse: () => []);
-    List<int> rightWallOverlap =
-        tetrimino.firstWhere((cell) => cell[0] > 9, orElse: () => []);
-    List<int> bottomOverlap =
-        tetrimino.firstWhere((cell) => cell[1] < 0, orElse: () => []);
-    List<int> leftBlockOverlap = tetrimino.firstWhere((cell) {
-      if (cell[0] != 0) {
-        List<int> nextBlock = [cell[0] - 1, cell[1]];
-        BlockType nextBlockType = findCell(nextBlock, _grid.value);
-        return ((nextBlockType == BlockType.locked &&
-            tetrimino.contains(nextBlock) == true));
-      }
-      return false;
-    }, orElse: () => []);
-    List<int> rightBlockOverlap = tetrimino.firstWhere((cell) {
-      if (cell[0] != 9) {
-        List<int> nextBlock = [cell[0] + 1, cell[1]];
-        BlockType nextBlockType = findCell(nextBlock, _grid.value);
-        return ((nextBlockType == BlockType.locked &&
-            tetrimino.contains(nextBlock) == true));
-      }
-      return false;
-    }, orElse: () => []);
-
-    List<int> bottomBlockOverlap = tetrimino.firstWhere((cell) {
-      if (cell[1] != 0) {
-        List<int> nextBlock = [cell[0], cell[1] - 1];
-        BlockType nextBlockType = findCell(nextBlock, _grid.value);
-        return ((nextBlockType == BlockType.locked &&
-            tetrimino.contains(nextBlock) == true));
-      }
-      return false;
-    }, orElse: () => []);
-
-    List<int> topBlockOverlap = tetrimino.firstWhere((cell) {
-      if (cell[1] != 21) {
-        List<int> nextBlock = [cell[0], cell[1] + 1];
-        BlockType nextBlockType = findCell(nextBlock, _grid.value);
-        return ((nextBlockType == BlockType.locked &&
-            tetrimino.contains(nextBlock) == true));
-      }
-      return false;
-    }, orElse: () => []);
-
-    result.putIfAbsent("leftWall", () => leftWallOverlap);
-    result.putIfAbsent("leftBlock", () => leftBlockOverlap);
-    result.putIfAbsent("rightWall", () => rightWallOverlap);
-    result.putIfAbsent("rightBlock", () => rightBlockOverlap);
-    result.putIfAbsent("topBlock", () => topBlockOverlap);
-    result.putIfAbsent("bottom", () => bottomOverlap);
-    result.putIfAbsent("bottomBlock", () => bottomBlockOverlap);
-
-    return result;
   }
 
   void dispose() {
