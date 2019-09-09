@@ -40,6 +40,7 @@ Compile and run file
 [x] DRY up code (sort of)
 [x] Refactor Bloc
 [] use provider library, or Didier Boelens's BlocProvider
+[] write unit tests
 
 
 ## Known bugs
