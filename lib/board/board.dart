@@ -45,9 +45,10 @@ class _BoardState extends State<Board> {
         onHorizontalDragEnd: (details) {
           bloc.userInputEnd();
         },
-        onVerticalDragDown: (details) {
-          bloc.userInputEnd();
-          print('swipe down');
+        onVerticalDragUpdate: (details) {
+          if (details.delta.dy > 0) {
+            print('swipe down');
+          }
         },
         onTap: () {
           bloc.userInputRotate();
