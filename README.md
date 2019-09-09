@@ -20,7 +20,7 @@ Compile and run file
 [x] wall & block detection
 [x] wall & block detection on rotation
 [x] hard drop
-[] fast drop
+[x] fast drop
 [x] t-spin
 [] ghost piece
 [] pause game
