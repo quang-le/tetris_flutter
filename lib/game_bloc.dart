@@ -79,6 +79,7 @@ class GameBloc {
     return;
   }
 
+  // TODO: refactor so it can be reused for ghost piece
   void move(Direction direction) {
     // keep copy of old coordinates for clearing display
     var cellsToRemove = List<List<int>>.from(_tetrimino.value);
@@ -246,6 +247,7 @@ class GameBloc {
     }
   }
 
+  // TODO refactor so it can re-used for ghost piece
   void checkContactBelow() {
     var reachBottom = moves.reachBottom(_tetrimino.value);
     var reachTop = moves.reachTop(_tetrimino.value, _grid.value);

@@ -34,6 +34,8 @@ Compile and run file
 [] themes
 [] start screen
 [] settings screen
+[] set speed
+[] toggle ghost piece
 
 ## Other improvements
 [] Refactor variable names for clarity
