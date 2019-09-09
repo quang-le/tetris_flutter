@@ -43,12 +43,19 @@ class _BoardState extends State<Board> {
           }
         },
         onHorizontalDragEnd: (details) {
-          bloc.userInputEnd();
+          bloc.cancelHorizontalUserInput();
         },
         onVerticalDragUpdate: (details) {
           if (details.delta.dy > 0) {
             print('swipe down');
+            bloc.fastFall();
+          } else if (details.delta.dy < 0) {
+            print('swipe up');
+            bloc.hardDrop();
           }
+        },
+        onVerticalDragEnd: (details) {
+          bloc.cancelVerticalUserInput();
         },
         onTap: () {
           bloc.userInputRotate();

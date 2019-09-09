@@ -18,7 +18,8 @@ class GameBloc {
       }
     });
     gameStart = _gameStart.stream.listen((start) {
-      gameLoop();
+      int gameSpeed = 1000;
+      gameLoop(gameSpeed);
     });
   }
 
@@ -36,6 +37,8 @@ class GameBloc {
   var _tetrimino = StreamedList<List<int>>()..inStream(<List<int>>[]);
   var _goLeft = StreamedValue<bool>()..inStream(false);
   var _goRight = StreamedValue<bool>()..inStream(false);
+  var _fastFall = StreamedValue<bool>()..value = false;
+  var _hardDrop = StreamedValue<bool>()..value = false;
   var _isRotating = StreamedValue<bool>()..inStream(false);
   var _gameOver = StreamedValue<bool>()..inStream(false);
   var _gameStart = StreamedValue<bool>()..inStream(true);
@@ -137,10 +140,27 @@ class GameBloc {
     return;
   }
 
-  void userInputEnd() {
+  void cancelHorizontalUserInput() {
     _goLeft.value = false;
     _goRight.value = false;
     return;
+  }
+
+  void cancelVerticalUserInput() {
+    _hardDrop.value = false;
+    _fastFall.value = false;
+    return;
+  }
+
+  void fastFall() {
+    cancelHorizontalUserInput();
+    _fastFall.value = true;
+    return;
+  }
+
+  void hardDrop() {
+    cancelHorizontalUserInput();
+    _hardDrop.value = true;
   }
 
   void userInputRotate() {
@@ -273,7 +293,9 @@ class GameBloc {
   }
 
 // TODO get width and height from widget i.o. hard coded in function
-  void clearLines(Map<List<int>, BlockType> grid) {
+  // TODO find way to implement delay before delete that doesn't break everything like Future.delay does
+  List<Map<List<int>, BlockType>> checkFullLines(
+      Map<List<int>, BlockType> grid) {
     Map<List<int>, BlockType> clonedGrid = Map<List<int>, BlockType>.from(grid);
     List<Map<List<int>, BlockType>> fullLines = [];
     // Create subMaps by line/ y coordinate
@@ -297,7 +319,11 @@ class GameBloc {
         fullLines.add(line);
       }
     }
-    // clear full lines from grid
+
+    return fullLines;
+  }
+
+  void clearLines(List<Map<List<int>, BlockType>> fullLines) {
     if (fullLines.isNotEmpty) {
       fullLines.forEach((line) {
         line.forEach((index, cell) {
@@ -326,20 +352,29 @@ class GameBloc {
         }
       }
     }
+    return;
   }
 
-  void gameLoop() async {
+  void gameLoop(int fallSpeed) async {
+    List<Map<List<int>, BlockType>> fullLines = [];
     while (_gameOver.value == false) {
       var newBlock = randomizer.choosePiece();
       _blockType.value = newBlock;
       addPiece();
       while (_landed.value == false) {
         stopwatchFall.start();
-        // TODO modify fall delay programmatically
-        while (stopwatchFall.elapsedMilliseconds < 2000) {
+        while (
+            stopwatchFall.elapsedMilliseconds < fallSpeed && !_hardDrop.value) {
           // Future necessary for performance and to give time to render
           await Future.delayed(Duration(milliseconds: 100));
           checkContactOnSide();
+          if (_hardDrop.value) {
+            print('hard dropping');
+            while (!_isLocking.value) {
+              fall();
+              checkContactBelow();
+            }
+          }
           if (_isRotating.value) {
             rotate(Direction.left);
             _isRotating.value = false;
@@ -352,25 +387,33 @@ class GameBloc {
           }
           checkContactBelow();
         }
+
         stopwatchFall.stop();
         stopwatchFall.reset();
-        if (_isLocking.value == true &&
-            stopwatchLock.elapsedMilliseconds > 1000) {
+        if ((_isLocking.value == true &&
+                stopwatchLock.elapsedMilliseconds > 1000) ||
+            (_isLocking.value && _hardDrop.value)) {
           _landed.value = true;
           print('==============LANDED================');
         } else if (_isLocking.value == false) {
-          // TODO modify fall delay programmatically
-          //await Future.delayed(Duration(milliseconds: 400));
           fall();
         }
       }
       // reinitialize control values if block landed
       if (_landed.value == true) {
         _isLocking.value = false;
+        _hardDrop.value = false;
         _tetrimino.value.forEach(
             (cell) => _updateCell(cell, BlockType.locked, _grid.value));
         _tetrimino.value = [];
-        clearLines(_grid.value);
+
+        /// WARNING clearLines is async!!! This could pose problems with high speed games
+        /// but changing clearLines type to Future<void> and awaiting it crashes everything
+        fullLines = checkFullLines(_grid.value);
+        if (fullLines.isNotEmpty) {
+          await Future.delayed(Duration(milliseconds: 2000));
+          clearLines(fullLines);
+        }
       }
       _landed.value = false;
     }
@@ -389,6 +432,8 @@ class GameBloc {
     _gameStart.dispose();
     _gameOver.dispose();
     _isRotating.dispose();
+    _fastFall.dispose();
+    _hardDrop.dispose();
   }
 }
 

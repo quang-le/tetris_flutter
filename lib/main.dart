@@ -6,7 +6,6 @@ import 'package:tetris/game_bloc.dart';
 import 'package:tetris/provider.dart';
 
 void main() async {
-  debugPrintGestureArenaDiagnostics = true;
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   GameBloc gameBloc = GameBloc();
