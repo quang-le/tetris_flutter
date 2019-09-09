@@ -19,7 +19,8 @@ Compile and run file
 [x] rotate piece
 [x] wall & block detection
 [x] wall & block detection on rotation
-[] hard drop
+[x] hard drop
+[] fast drop
 [x] t-spin
 [] ghost piece
 [] pause game
@@ -36,12 +37,12 @@ Compile and run file
 
 ## Other improvements
 [] Refactor variable names for clarity
-[] DRY up code
-[] Refactor Bloc
+[x] DRY up code (sort of)
+[x] Refactor Bloc
 [] use provider library, or Didier Boelens's BlocProvider
 
 
 ## Known bugs
-[] rotation wall detection flaky
-[] rotation of I block not correctly centered
+[x] rotation wall detection flaky
+[x] rotation of I block not correctly centered
 

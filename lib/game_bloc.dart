@@ -293,7 +293,6 @@ class GameBloc {
   }
 
 // TODO get width and height from widget i.o. hard coded in function
-  // TODO find way to implement delay before delete that doesn't break everything like Future.delay does
   List<Map<List<int>, BlockType>> checkFullLines(
       Map<List<int>, BlockType> grid) {
     Map<List<int>, BlockType> clonedGrid = Map<List<int>, BlockType>.from(grid);
@@ -407,8 +406,6 @@ class GameBloc {
             (cell) => _updateCell(cell, BlockType.locked, _grid.value));
         _tetrimino.value = [];
 
-        /// WARNING clearLines is async!!! This could pose problems with high speed games
-        /// but changing clearLines type to Future<void> and awaiting it crashes everything
         fullLines = checkFullLines(_grid.value);
         if (fullLines.isNotEmpty) {
           await Future.delayed(Duration(milliseconds: 2000));
