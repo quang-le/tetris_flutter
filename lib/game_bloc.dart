@@ -21,6 +21,9 @@ class GameBloc {
       int gameSpeed = 1000;
       gameLoop(gameSpeed);
     });
+    checkTetrimino = _tetrimino.outStream.listen((tetrimino) {
+      _ghostPiece.value = tetrimino;
+    });
   }
 
   var stopwatchLock = Stopwatch();
@@ -30,11 +33,14 @@ class GameBloc {
   var mapCompare = MapEquality();
   Move moves = Move();
   StreamSubscription gameStart;
+  StreamSubscription checkTetrimino;
 
   var _grid = StreamedValue<Map<List<int>, BlockType>>();
   var _landed = StreamedValue<bool>()..inStream(false);
   var _isLocking = StreamedValue<bool>()..inStream(false);
   var _tetrimino = StreamedList<List<int>>()..inStream(<List<int>>[]);
+  var _ghostPiece = StreamedList<List<int>>()..inStream(<List<int>>[]);
+  var _ghostPieceDisplay = StreamedList<List<int>>()..inStream(<List<int>>[]);
   var _goLeft = StreamedValue<bool>()..inStream(false);
   var _goRight = StreamedValue<bool>()..inStream(false);
   var _fastDrop = StreamedValue<bool>()..value = false;
@@ -51,6 +57,8 @@ class GameBloc {
 
   Stream<Map<List<int>, BlockType>> get grid => _grid.outStream;
   Stream<List<List<int>>> get tetrimino => _tetrimino.outStream;
+  Stream<List<List<int>>> get ghostPiece => _ghostPieceDisplay.outStream;
+  Stream<BlockType> get blockType => _blockType.outStream;
 
   Stream<bool> get gameOver => _gameOver.outStream;
   Function get findCell => moves.findCell;
@@ -79,13 +87,12 @@ class GameBloc {
     return;
   }
 
-  // TODO: refactor so it can be reused for ghost piece
   void move(Direction direction) {
     // keep copy of old coordinates for clearing display
     var cellsToRemove = List<List<int>>.from(_tetrimino.value);
 
     // update tetrimino position in stream
-    _updateTetriminoPositionInStream(direction);
+    _updatePositionInStream(direction, _tetrimino, _blockType);
 
     // Identify cells to keep (new cell position overlaps old cell position)
     List<List<int>> cellsToKeep =
@@ -247,7 +254,6 @@ class GameBloc {
     }
   }
 
-  // TODO refactor so it can re-used for ghost piece
   void checkContactBelow() {
     var reachBottom = moves.reachBottom(_tetrimino.value);
     var reachTop = moves.reachTop(_tetrimino.value, _grid.value);
@@ -270,12 +276,30 @@ class GameBloc {
     return;
   }
 
-  void _updateTetriminoPositionInStream(Direction direction) {
-    _tetrimino.value.forEach((cell) {
+  // TODO use with ghost piece
+  void _checkGhostPieceContact() {
+    print('checking contact');
+    var reachBottom = moves.reachBottom(_ghostPiece.value);
+    var reachOtherBlock = moves.reachOtherBlock(_ghostPiece.value, _grid.value);
+
+    if (reachBottom.isEmpty || reachOtherBlock.isEmpty) {
+      _updatePositionInStream(Direction.down, _ghostPiece, _blockType);
+      _checkGhostPieceContact();
+    } else {
+      _ghostPieceDisplay.value = _ghostPiece.value;
+      return;
+    }
+  }
+
+//TODO use with ghost piece
+
+  void _updatePositionInStream(Direction direction,
+      StreamedList<List<int>> stream, StreamedValue<BlockType> type) {
+    stream.value.forEach((cell) {
       List<int> newCell = moves.determineMovementValues(direction, cell);
-      _updateCell(newCell, _blockType.value, _grid.value);
-      _tetrimino.replace(cell, newCell);
-      _tetrimino.refresh();
+      _updateCell(newCell, type.value, _grid.value);
+      stream.replace(cell, newCell);
+      stream.refresh();
     });
   }
 
@@ -362,6 +386,8 @@ class GameBloc {
       var newBlock = randomizer.choosePiece();
       _blockType.value = newBlock;
       addPiece();
+      _ghostPiece.value = _tetrimino.value;
+      _checkGhostPieceContact();
       while (_landed.value == false) {
         stopwatchFall.start();
         while (stopwatchFall.elapsedMilliseconds < fallSpeed &&
@@ -371,7 +397,6 @@ class GameBloc {
           await Future.delayed(Duration(milliseconds: 100));
           checkContactOnSide();
           if (_hardDrop.value) {
-            print('hard dropping');
             while (!_isLocking.value) {
               ///WARNING potential bug here if user hard drops just before contact
               fall();
@@ -379,7 +404,6 @@ class GameBloc {
             }
           }
           if (_fastDrop.value) {
-            print('fast dropping');
             while (!_isLocking.value && _fastDrop.value) {
               ///WARNING potential bug here if user fast drops just before contact
               fall();
@@ -447,6 +471,9 @@ class GameBloc {
     _isRotating.dispose();
     _fastDrop.dispose();
     _hardDrop.dispose();
+    _ghostPiece.dispose();
+    _ghostPieceDisplay.dispose();
+    checkTetrimino.cancel();
   }
 }
 

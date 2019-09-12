@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tetris/game_bloc.dart';
 import 'package:frideos/frideos.dart';
+import 'package:tetris/helpers/compare.dart';
 
 class GridCell extends StatefulWidget {
   final double size;
@@ -25,16 +26,23 @@ class _GridCellState extends State<GridCell> {
         builder: (context, gridSnapshot) {
           var grid = gridSnapshot.data;
           var coordinates = widget.coordinates;
-          return Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.white, width: 0.25),
-              //color:
-              //    onGrid == BlockType.locked ? Colors.green : Colors.red,
-              color: _determineCellColor(grid, coordinates),
-            ),
-            height: widget.size,
-            width: widget.size,
-          );
+          return StreamedWidget(
+              stream: widget.bloc.ghostPiece,
+              builder: (context, ghostSnapshot) {
+                return StreamedWidget(
+                    stream: widget.bloc.blockType,
+                    builder: (context, blockTypeSnapshot) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: _determineBorder(coordinates,
+                              ghostSnapshot.data, blockTypeSnapshot.data),
+                          color: _determineCellColor(grid, coordinates),
+                        ),
+                        height: widget.size,
+                        width: widget.size,
+                      );
+                    });
+              });
         });
   }
 
@@ -72,5 +80,49 @@ class _GridCellState extends State<GridCell> {
         break;
     }
     return color;
+  }
+
+  Border _determineBorder(
+      List<int> coordinates, List<List<int>> ghostPiece, BlockType type) {
+    Color color = Colors.grey;
+    double width = 0.25;
+    List<int> isGhostPiece = Compare.matchLists(coordinates, ghostPiece);
+    if (isGhostPiece.isNotEmpty) {
+      switch (type) {
+        case BlockType.O:
+          color = Colors.yellow;
+          width = 0.75;
+          width = 0.75;
+          break;
+        case BlockType.I:
+          color = Colors.lightBlueAccent;
+          width = 0.75;
+          break;
+        case BlockType.J:
+          color = Colors.blue;
+          width = 0.75;
+          break;
+        case BlockType.L:
+          color = Colors.orangeAccent;
+          width = 0.75;
+          break;
+        case BlockType.S:
+          color = Colors.green;
+          width = 0.75;
+          break;
+        case BlockType.Z:
+          color = Colors.redAccent;
+          width = 0.75;
+          break;
+        case BlockType.T:
+          color = Colors.deepPurpleAccent;
+          width = 0.75;
+          break;
+        default:
+          color = Colors.grey;
+          break;
+      }
+    }
+    return Border.all(color: color, width: width);
   }
 }
