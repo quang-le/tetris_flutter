@@ -14,38 +14,59 @@ A basic tetris clone done in Flutter as a personal learning project
 Compile and run file
 
 ## Gameplay Features
+
 [x] use random generator compliant with Tetris guidelines to generate block order
+
 [x] on contact, allow delay before locking piece
+
 [x] rotate piece
+
 [x] wall & block detection
+
 [x] wall & block detection on rotation
+
 [x] hard drop
+
 [x] fast drop
+
 [x] t-spin
+
 [] ghost piece
+
 [] pause game
 
 
 ## UX features
+
 [] background music
+
 [] sound effect
+
 [] scores
+
 [] save high score
+
 [] themes
+
 [] start screen
+
 [] settings screen
+
 [] set speed
+
 [] toggle ghost piece
 
 ## Other improvements
+
 [] Refactor variable names for clarity
+
 [x] DRY up code (sort of)
+
 [x] Refactor Bloc
+
 [] use provider library, or Didier Boelens's BlocProvider
+
 [] write unit tests
 
 
-## Known bugs
-[x] rotation wall detection flaky
-[x] rotation of I block not correctly centered
 
