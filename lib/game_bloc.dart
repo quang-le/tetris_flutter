@@ -21,11 +21,17 @@ class GameBloc {
       int gameSpeed = 1000;
       gameLoop(gameSpeed);
     });
-    checkTetrimino = _tetrimino.outStream.listen((tetrimino) {
-      print('listened to tetrimino');
-      _ghostPiece.value = List<List<int>>.from(_tetrimino.value);
-      _checkGhostPieceContact();
+
+    ghostPieceUpdate = _ghostPieceShoudlUpdate.outStream.listen((update) {
+      if (update) {
+        _updateGhostPiece();
+      }
     });
+
+    /*isRotating = _isRotating.outStream.listen((rotating) {
+      if (!rotating) _updateGhostPiece();
+    });*/
+
     isGamePaused = _pauseGame.outStream.listen((isPaused) {
       if (isPaused) {
         stopwatchLock.stop();
@@ -48,8 +54,9 @@ class GameBloc {
   var mapCompare = MapEquality();
   Move moves = Move();
   StreamSubscription gameStart;
-  StreamSubscription checkTetrimino;
   StreamSubscription isGamePaused;
+  // StreamSubscription isRotating;
+  StreamSubscription ghostPieceUpdate;
 
   var _grid = StreamedValue<Map<List<int>, BlockType>>();
   var _landed = StreamedValue<bool>()..inStream(false);
@@ -62,6 +69,7 @@ class GameBloc {
   var _fastDrop = StreamedValue<bool>()..value = false;
   var _hardDrop = StreamedValue<bool>()..value = false;
   var _isRotating = StreamedValue<bool>()..inStream(false);
+  var _ghostPieceShoudlUpdate = StreamedValue<bool>()..inStream(false);
   var _gameOver = StreamedValue<bool>()..inStream(false);
   var _gameStart = StreamedValue<bool>()..inStream(true);
   var _pauseGame = StreamedValue<bool>()..value = false;
@@ -193,6 +201,7 @@ class GameBloc {
   void hardDrop() {
     cancelHorizontalUserInput();
     _hardDrop.value = true;
+    print('hard drop value toggled');
   }
 
   void userInputRotate() {
@@ -300,7 +309,6 @@ class GameBloc {
     return;
   }
 
-  // TODO use with ghost piece
   void _checkGhostPieceContact() {
     print('checking contact');
     var reachBottom = moves.reachBottom(_ghostPiece.value);
@@ -315,7 +323,10 @@ class GameBloc {
     }
   }
 
-//TODO use with ghost piece
+  void _updateGhostPiece() {
+    _ghostPiece.value = List<List<int>>.from(_tetrimino.value);
+    _checkGhostPieceContact();
+  }
 
   List<List<int>> _updatePositionInStream(
       Direction direction, StreamedList<List<int>> stream) {
@@ -420,45 +431,53 @@ class GameBloc {
             stopwatchFall.start();
             while (stopwatchFall.elapsedMilliseconds < fallSpeed &&
                 !_hardDrop.value &&
-                !_fastDrop.value &&
-                // TODO debug game pause
-                !_pauseGame.value) {
+                !_fastDrop.value) {
               // Future necessary for performance and to give time to render
               await Future.delayed(Duration(milliseconds: 100));
               checkContactOnSide();
-              if (_hardDrop.value) {
-                while (!_isLocking.value) {
-                  ///WARNING potential bug here if user hard drops just before contact
-                  fall();
-                  checkContactBelow();
-                }
-              }
-              if (_fastDrop.value) {
-                while (!_isLocking.value && _fastDrop.value) {
-                  ///WARNING potential bug here if user fast drops just before contact
-                  fall();
-                  checkContactBelow();
-                  // TODO find a ratio with fallSpeed
-                  await Future.delayed(Duration(milliseconds: fallSpeed ~/ 5));
-                }
-              }
 
               /// Game pause
               if (!_pauseGame.value) {
-                if (!stopwatchFall.isRunning) {
-                  stopwatchFall.start();
+                if (_hardDrop.value) {
+                  // TODO isn't there a func for this??
+                  List<List<int>> oldCells = List.from(_tetrimino.value);
+                  _tetrimino.value = List.from(_ghostPiece.value);
+                  _tetrimino.value.forEach((cell) {
+                    _updateCell(cell, _blockType.value, _grid.value);
+                  });
+                  _clearOldCells(oldCells, _tetrimino.value);
                 }
-                if (_isRotating.value) {
-                  rotate(Direction.left);
-                  _isRotating.value = false;
+                if (_fastDrop.value) {
+                  while (!_isLocking.value && _fastDrop.value) {
+                    ///WARNING potential bug here if user fast drops just before contact
+                    fall();
+                    checkContactBelow();
+                    // TODO find a ratio with fallSpeed
+                    await Future.delayed(
+                        Duration(milliseconds: fallSpeed ~/ 5));
+                  }
                 }
-                if (_goLeft.value) {
-                  moveLeft();
+
+                /// Game pause
+                if (!_pauseGame.value) {
+                  if (!stopwatchFall.isRunning) {
+                    stopwatchFall.start();
+                  }
+                  if (_isRotating.value) {
+                    rotate(Direction.left);
+                    _isRotating.value = false;
+                    _ghostPieceShoudlUpdate.value = true;
+                  }
+                  if (_goLeft.value) {
+                    moveLeft();
+                    _ghostPieceShoudlUpdate.value = true;
+                  }
+                  if (_goRight.value) {
+                    moveRight();
+                    _ghostPieceShoudlUpdate.value = true;
+                  }
+                  checkContactBelow();
                 }
-                if (_goRight.value) {
-                  moveRight();
-                }
-                checkContactBelow();
               }
             }
             // TODO manage pausing stopwatches with listener
@@ -516,8 +535,9 @@ class GameBloc {
     _ghostPiece.dispose();
     _pauseGame.dispose();
     _ghostPieceDisplay.dispose();
-    checkTetrimino.cancel();
     isGamePaused.cancel();
+    // isRotating.cancel();
+    ghostPieceUpdate.cancel();
   }
 }
 

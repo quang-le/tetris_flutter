@@ -33,7 +33,7 @@ Compile and run file
 
 [x] ghost piece
 
-[] pause game
+[x] pause game
 
 
 ## UX features
@@ -69,4 +69,6 @@ Compile and run file
 [] write unit tests
 
 
+## Known bugs 
 
+[] hard drop is flaky
