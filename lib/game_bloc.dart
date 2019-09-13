@@ -26,6 +26,19 @@ class GameBloc {
       _ghostPiece.value = List<List<int>>.from(_tetrimino.value);
       _checkGhostPieceContact();
     });
+    isGamePaused = _pauseGame.outStream.listen((isPaused) {
+      if (isPaused) {
+        stopwatchLock.stop();
+        stopwatchFall.stop();
+      } else if (!isPaused) {
+        if (!stopwatchFall.isRunning) {
+          stopwatchFall.start();
+        }
+        if (!stopwatchLock.isRunning) {
+          stopwatchLock.start();
+        }
+      }
+    });
   }
 
   var stopwatchLock = Stopwatch();
@@ -36,6 +49,7 @@ class GameBloc {
   Move moves = Move();
   StreamSubscription gameStart;
   StreamSubscription checkTetrimino;
+  StreamSubscription isGamePaused;
 
   var _grid = StreamedValue<Map<List<int>, BlockType>>();
   var _landed = StreamedValue<bool>()..inStream(false);
@@ -50,6 +64,7 @@ class GameBloc {
   var _isRotating = StreamedValue<bool>()..inStream(false);
   var _gameOver = StreamedValue<bool>()..inStream(false);
   var _gameStart = StreamedValue<bool>()..inStream(true);
+  var _pauseGame = StreamedValue<bool>()..value = false;
   var _blockType = StreamedValue<BlockType>();
   var _center = StreamedList<int>()
     ..value = ([
@@ -68,6 +83,10 @@ class GameBloc {
   void startGame() {
     _gameStart.value = true;
     return;
+  }
+
+  void pauseGame() {
+    _pauseGame.value = !_pauseGame.value;
   }
 
   void initializeGrid(int horizontal, int vertical) {
@@ -388,76 +407,94 @@ class GameBloc {
   void gameLoop(int fallSpeed) async {
     List<Map<List<int>, BlockType>> fullLines = [];
     while (_gameOver.value == false) {
-      var newBlock = randomizer.choosePiece();
-      _blockType.value = newBlock;
-      addPiece();
-      _ghostPiece.value = List<List<int>>.from(_tetrimino.value);
-      _checkGhostPieceContact();
-      while (_landed.value == false) {
-        stopwatchFall.start();
-        while (stopwatchFall.elapsedMilliseconds < fallSpeed &&
-            !_hardDrop.value &&
-            !_fastDrop.value) {
-          // Future necessary for performance and to give time to render
-          await Future.delayed(Duration(milliseconds: 100));
-          checkContactOnSide();
-          if (_hardDrop.value) {
-            while (!_isLocking.value) {
-              ///WARNING potential bug here if user hard drops just before contact
+      /// Game pause
+      if (!_pauseGame.value) {
+        var newBlock = randomizer.choosePiece();
+        _blockType.value = newBlock;
+        addPiece();
+        _ghostPiece.value = List<List<int>>.from(_tetrimino.value);
+        _checkGhostPieceContact();
+        while (_landed.value == false) {
+          /// Game pause
+          if (!_pauseGame.value) {
+            stopwatchFall.start();
+            while (stopwatchFall.elapsedMilliseconds < fallSpeed &&
+                !_hardDrop.value &&
+                !_fastDrop.value &&
+                // TODO debug game pause
+                !_pauseGame.value) {
+              // Future necessary for performance and to give time to render
+              await Future.delayed(Duration(milliseconds: 100));
+              checkContactOnSide();
+              if (_hardDrop.value) {
+                while (!_isLocking.value) {
+                  ///WARNING potential bug here if user hard drops just before contact
+                  fall();
+                  checkContactBelow();
+                }
+              }
+              if (_fastDrop.value) {
+                while (!_isLocking.value && _fastDrop.value) {
+                  ///WARNING potential bug here if user fast drops just before contact
+                  fall();
+                  checkContactBelow();
+                  // TODO find a ratio with fallSpeed
+                  await Future.delayed(Duration(milliseconds: fallSpeed ~/ 5));
+                }
+              }
+
+              /// Game pause
+              if (!_pauseGame.value) {
+                if (!stopwatchFall.isRunning) {
+                  stopwatchFall.start();
+                }
+                if (_isRotating.value) {
+                  rotate(Direction.left);
+                  _isRotating.value = false;
+                }
+                if (_goLeft.value) {
+                  moveLeft();
+                }
+                if (_goRight.value) {
+                  moveRight();
+                }
+                checkContactBelow();
+              }
+            }
+            // TODO manage pausing stopwatches with listener
+            /// Game pause
+            if (!_pauseGame.value) {
+              stopwatchFall.stop();
+              stopwatchFall.reset();
+            }
+            if ((_isLocking.value == true &&
+                    stopwatchLock.elapsedMilliseconds > 1000) ||
+                (_isLocking.value && _hardDrop.value) ||
+                (_isLocking.value && _fastDrop.value)) {
+              _landed.value = true;
+              print('==============LANDED================');
+            } else if (_isLocking.value == false && !_pauseGame.value) {
               fall();
-              checkContactBelow();
             }
           }
-          if (_fastDrop.value) {
-            while (!_isLocking.value && _fastDrop.value) {
-              ///WARNING potential bug here if user fast drops just before contact
-              fall();
-              checkContactBelow();
-              // TODO find a ratio with fallSpeed
-              await Future.delayed(Duration(milliseconds: fallSpeed ~/ 5));
-            }
-          }
-          if (_isRotating.value) {
-            rotate(Direction.left);
-            _isRotating.value = false;
-          }
-          if (_goLeft.value) {
-            moveLeft();
-          }
-          if (_goRight.value) {
-            moveRight();
-          }
-          checkContactBelow();
         }
+        // reinitialize control values if block landed
+        if (_landed.value == true) {
+          _isLocking.value = false;
+          _hardDrop.value = false;
+          _fastDrop.value = false;
+          _tetrimino.value.forEach(
+              (cell) => _updateCell(cell, BlockType.locked, _grid.value));
+          _tetrimino.value = [];
 
-        stopwatchFall.stop();
-        stopwatchFall.reset();
-        if ((_isLocking.value == true &&
-                stopwatchLock.elapsedMilliseconds > 1000) ||
-            (_isLocking.value && _hardDrop.value) ||
-            (_isLocking.value && _fastDrop.value)) {
-          _landed.value = true;
-          print('==============LANDED================');
-        } else if (_isLocking.value == false) {
-          fall();
+          fullLines = checkFullLines(_grid.value);
+          if (fullLines.isNotEmpty) {
+            await Future.delayed(Duration(milliseconds: 2000));
+            clearLines(fullLines);
+          }
         }
+        _landed.value = false;
       }
-      // reinitialize control values if block landed
-      if (_landed.value == true) {
-        _isLocking.value = false;
-        _hardDrop.value = false;
-        _fastDrop.value = false;
-        _tetrimino.value.forEach(
-            (cell) => _updateCell(cell, BlockType.locked, _grid.value));
-        _tetrimino.value = [];
-
-        fullLines = checkFullLines(_grid.value);
-        if (fullLines.isNotEmpty) {
-          await Future.delayed(Duration(milliseconds: 2000));
-          clearLines(fullLines);
-        }
-      }
-      _landed.value = false;
     }
   }
 
@@ -477,8 +514,10 @@ class GameBloc {
     _fastDrop.dispose();
     _hardDrop.dispose();
     _ghostPiece.dispose();
+    _pauseGame.dispose();
     _ghostPieceDisplay.dispose();
     checkTetrimino.cancel();
+    isGamePaused.cancel();
   }
 }
 
