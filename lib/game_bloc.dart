@@ -22,7 +22,9 @@ class GameBloc {
       gameLoop(gameSpeed);
     });
     checkTetrimino = _tetrimino.outStream.listen((tetrimino) {
-      _ghostPiece.value = tetrimino;
+      print('listened to tetrimino');
+      _ghostPiece.value = List<List<int>>.from(_tetrimino.value);
+      _checkGhostPieceContact();
     });
   }
 
@@ -92,8 +94,11 @@ class GameBloc {
     var cellsToRemove = List<List<int>>.from(_tetrimino.value);
 
     // update tetrimino position in stream
-    _updatePositionInStream(direction, _tetrimino, _blockType);
-
+    List<List<int>> updatedPosition =
+        _updatePositionInStream(direction, _tetrimino);
+    updatedPosition.forEach((newCell) {
+      _updateCell(newCell, _blockType.value, _grid.value);
+    });
     // Identify cells to keep (new cell position overlaps old cell position)
     List<List<int>> cellsToKeep =
         Compare.createListOfMatchingLists(cellsToRemove, _tetrimino.value);
@@ -282,8 +287,8 @@ class GameBloc {
     var reachBottom = moves.reachBottom(_ghostPiece.value);
     var reachOtherBlock = moves.reachOtherBlock(_ghostPiece.value, _grid.value);
 
-    if (reachBottom.isEmpty || reachOtherBlock.isEmpty) {
-      _updatePositionInStream(Direction.down, _ghostPiece, _blockType);
+    if (reachBottom.isEmpty && reachOtherBlock.isEmpty) {
+      _updatePositionInStream(Direction.down, _ghostPiece);
       _checkGhostPieceContact();
     } else {
       _ghostPieceDisplay.value = _ghostPiece.value;
@@ -293,14 +298,14 @@ class GameBloc {
 
 //TODO use with ghost piece
 
-  void _updatePositionInStream(Direction direction,
-      StreamedList<List<int>> stream, StreamedValue<BlockType> type) {
+  List<List<int>> _updatePositionInStream(
+      Direction direction, StreamedList<List<int>> stream) {
     stream.value.forEach((cell) {
       List<int> newCell = moves.determineMovementValues(direction, cell);
-      _updateCell(newCell, type.value, _grid.value);
       stream.replace(cell, newCell);
       stream.refresh();
     });
+    return stream.value;
   }
 
   void _updateCell(
@@ -386,7 +391,7 @@ class GameBloc {
       var newBlock = randomizer.choosePiece();
       _blockType.value = newBlock;
       addPiece();
-      _ghostPiece.value = _tetrimino.value;
+      _ghostPiece.value = List<List<int>>.from(_tetrimino.value);
       _checkGhostPieceContact();
       while (_landed.value == false) {
         stopwatchFall.start();

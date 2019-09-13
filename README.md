@@ -31,7 +31,7 @@ Compile and run file
 
 [x] t-spin
 
-[] ghost piece
+[x] ghost piece
 
 [] pause game
 
