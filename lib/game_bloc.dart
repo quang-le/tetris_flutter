@@ -28,6 +28,19 @@ class GameBloc {
       }
     });
 
+    hardDropListener = _hardDrop.outStream.listen((hardDrop) {
+      if (hardDrop) {
+        List<List<int>> oldCells = List.from(_tetrimino.value);
+        _tetrimino.value = List.from(_ghostPiece.value);
+        _tetrimino.value.forEach((cell) {
+          _updateCell(cell, _blockType.value, _grid.value);
+        });
+        _clearOldCells(oldCells, _tetrimino.value);
+        _isLocking.value = true;
+        print('HARD DROP DONE');
+      }
+    });
+
     isGamePaused = _pauseGame.outStream.listen((isPaused) {
       if (isPaused) {
         stopwatchLock.stop();
@@ -53,6 +66,7 @@ class GameBloc {
   StreamSubscription isGamePaused;
   // StreamSubscription isRotating;
   StreamSubscription ghostPieceUpdate;
+  StreamSubscription hardDropListener;
 
   var _grid = StreamedValue<Map<List<int>, BlockType>>();
   var _landed = StreamedValue<bool>()..inStream(false);
@@ -200,7 +214,6 @@ class GameBloc {
     cancelHorizontalUserInput();
     _hardDrop.value = true;
     //_enableGesture.value = false;
-    //print('hard drop value = ${_hardDrop.value}');
   }
 
   void userInputRotate() {
@@ -437,17 +450,6 @@ class GameBloc {
 
               /// Game pause
               if (!_pauseGame.value) {
-                if (_hardDrop.value) {
-                  // TODO isn't there a func for this??
-                  List<List<int>> oldCells = List.from(_tetrimino.value);
-                  _tetrimino.value = List.from(_ghostPiece.value);
-                  _tetrimino.value.forEach((cell) {
-                    _updateCell(cell, _blockType.value, _grid.value);
-                  });
-                  _clearOldCells(oldCells, _tetrimino.value);
-                  _isLocking.value = true;
-                  print('HARD DROP DONE');
-                }
                 if (_fastDrop.value) {
                   while (!_isLocking.value && _fastDrop.value) {
                     ///WARNING potential bug here if user fast drops just before contact
@@ -478,12 +480,9 @@ class GameBloc {
                 }
               }
             }
-            // TODO manage pausing stopwatches with listener
-            /// Game pause
-            if (!_pauseGame.value) {
-              stopwatchFall.stop();
-              stopwatchFall.reset();
-            }
+            stopwatchFall.stop();
+            stopwatchFall.reset();
+
             if ((_isLocking.value == true &&
                     stopwatchLock.elapsedMilliseconds > 1000) ||
                 (_isLocking.value && _hardDrop.value) ||
@@ -536,6 +535,7 @@ class GameBloc {
     _ghostPieceDisplay.dispose();
     isGamePaused.cancel();
     ghostPieceUpdate.cancel();
+    hardDropListener.cancel();
   }
 }
 

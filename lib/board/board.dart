@@ -19,6 +19,7 @@ class Board extends StatefulWidget {
 
 class _BoardState extends State<Board> {
   GameBloc bloc;
+  bool dragUp = false;
 
   // TODO : add int rows & int columns
   @override
@@ -52,14 +53,17 @@ class _BoardState extends State<Board> {
               onVerticalDragUpdate: gestureSnapshot.data
                   ? (details) {
                       dropPieces(details);
-                      //TODO set variable to determine what to execute on drag end
-                      // TODO CAUTION fastDrop should execute onUpdate;
                     }
                   : (details) {},
               onVerticalDragEnd: (details) {
                 bloc.cancelVerticalUserInput();
+                if (dragUp) {
+                  bloc.hardDrop();
+                  setState(() {
+                    dragUp = false;
+                  });
+                }
                 print('VERTICALDRAGEND');
-                // TODO execute appropriate function
               },
               onTap: () {
                 bloc.userInputRotate();
@@ -97,14 +101,14 @@ class _BoardState extends State<Board> {
   }
 
   void dropPieces(DragUpdateDetails details) {
-    if (details.delta.dy < 0) {
-      print('swipe up');
-      bloc.hardDrop();
-    } else if (details.delta.dy > 0) {
-      //  print(details.delta.dy);
-      // TODO: fix false positive swipe up detection
+    if (details.delta.dy > 0) {
       print('swipe down');
       bloc.fastFall();
+    } else if (details.delta.dy < 0) {
+      print('swipe up');
+      setState(() {
+        dragUp = true;
+      });
     }
   }
 }
