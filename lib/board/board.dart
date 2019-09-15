@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frideos/frideos.dart';
 import 'package:tetris/board/grid_cell.dart';
 import 'package:tetris/game_bloc.dart';
 import 'package:tetris/provider.dart';
@@ -34,36 +35,40 @@ class _BoardState extends State<Board> {
     return Container(
       height: widget.height,
       width: widget.width,
-      child: GestureDetector(
-        onHorizontalDragUpdate: (details) {
-          if (details.delta.dx > 0) {
-            bloc.userInputRight();
-          } else if (details.delta.dx < 0) {
-            bloc.userInputLeft();
-          }
-        },
-        onHorizontalDragEnd: (details) {
-          bloc.cancelHorizontalUserInput();
-        },
-        onVerticalDragUpdate: (details) {
-          if (details.delta.dy > 0) {
-            print('swipe down');
-            bloc.fastFall();
-          } else if (details.delta.dy < 0) {
-            print('swipe up');
-            bloc.hardDrop();
-          }
-        },
-        onVerticalDragEnd: (details) {
-          bloc.cancelVerticalUserInput();
-        },
-        onTap: () {
-          bloc.userInputRotate();
-        },
-        child: Column(
-          children: _gameGrid(context, 10, 20),
-        ),
-      ),
+      child: StreamedWidget(
+          stream: bloc.enableGesture,
+          builder: (context, gestureSnapshot) {
+            return GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                if (details.delta.dx > 0) {
+                  bloc.userInputRight();
+                } else if (details.delta.dx < 0) {
+                  bloc.userInputLeft();
+                }
+              },
+              onHorizontalDragEnd: (details) {
+                bloc.cancelHorizontalUserInput();
+              },
+              onVerticalDragUpdate: gestureSnapshot.data
+                  ? (details) {
+                      dropPieces(details);
+                      //TODO set variable to determine what to execute on drag end
+                      // TODO CAUTION fastDrop should execute onUpdate;
+                    }
+                  : (details) {},
+              onVerticalDragEnd: (details) {
+                bloc.cancelVerticalUserInput();
+                print('VERTICALDRAGEND');
+                // TODO execute appropriate function
+              },
+              onTap: () {
+                bloc.userInputRotate();
+              },
+              child: Column(
+                children: _gameGrid(context, 10, 20),
+              ),
+            );
+          }),
     );
   }
 
@@ -89,6 +94,18 @@ class _BoardState extends State<Board> {
       result.add(cell);
     }
     return Row(children: result);
+  }
+
+  void dropPieces(DragUpdateDetails details) {
+    if (details.delta.dy < 0) {
+      print('swipe up');
+      bloc.hardDrop();
+    } else if (details.delta.dy > 0) {
+      //  print(details.delta.dy);
+      // TODO: fix false positive swipe up detection
+      print('swipe down');
+      bloc.fastFall();
+    }
   }
 }
 

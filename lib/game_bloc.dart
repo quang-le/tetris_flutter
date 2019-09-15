@@ -28,10 +28,6 @@ class GameBloc {
       }
     });
 
-    /*isRotating = _isRotating.outStream.listen((rotating) {
-      if (!rotating) _updateGhostPiece();
-    });*/
-
     isGamePaused = _pauseGame.outStream.listen((isPaused) {
       if (isPaused) {
         stopwatchLock.stop();
@@ -73,6 +69,7 @@ class GameBloc {
   var _gameOver = StreamedValue<bool>()..inStream(false);
   var _gameStart = StreamedValue<bool>()..inStream(true);
   var _pauseGame = StreamedValue<bool>()..value = false;
+  var _enableGesture = StreamedValue<bool>()..value = true;
   var _blockType = StreamedValue<BlockType>();
   var _center = StreamedList<int>()
     ..value = ([
@@ -86,6 +83,7 @@ class GameBloc {
   Stream<BlockType> get blockType => _blockType.outStream;
 
   Stream<bool> get gameOver => _gameOver.outStream;
+  Stream<bool> get enableGesture => _enableGesture.outStream;
   Function get findCell => moves.findCell;
 
   void startGame() {
@@ -201,7 +199,8 @@ class GameBloc {
   void hardDrop() {
     cancelHorizontalUserInput();
     _hardDrop.value = true;
-    print('hard drop value toggled');
+    //_enableGesture.value = false;
+    //print('hard drop value = ${_hardDrop.value}');
   }
 
   void userInputRotate() {
@@ -446,6 +445,8 @@ class GameBloc {
                     _updateCell(cell, _blockType.value, _grid.value);
                   });
                   _clearOldCells(oldCells, _tetrimino.value);
+                  _isLocking.value = true;
+                  print('HARD DROP DONE');
                 }
                 if (_fastDrop.value) {
                   while (!_isLocking.value && _fastDrop.value) {
@@ -460,9 +461,6 @@ class GameBloc {
 
                 /// Game pause
                 if (!_pauseGame.value) {
-                  if (!stopwatchFall.isRunning) {
-                    stopwatchFall.start();
-                  }
                   if (_isRotating.value) {
                     rotate(Direction.left);
                     _isRotating.value = false;
@@ -511,6 +509,7 @@ class GameBloc {
             await Future.delayed(Duration(milliseconds: 2000));
             clearLines(fullLines);
           }
+          // _enableGesture.value = true;
         }
         _landed.value = false;
       }
@@ -536,7 +535,6 @@ class GameBloc {
     _pauseGame.dispose();
     _ghostPieceDisplay.dispose();
     isGamePaused.cancel();
-    // isRotating.cancel();
     ghostPieceUpdate.cancel();
   }
 }
