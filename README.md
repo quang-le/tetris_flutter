@@ -35,6 +35,9 @@ Compile and run file
 
 [x] pause game
 
+[] store and swap piece
+
+[] display next pieces
 
 ## UX features
 
@@ -56,6 +59,8 @@ Compile and run file
 
 [] toggle ghost piece
 
+
+
 ## Other improvements
 
 [] Refactor variable names for clarity
@@ -69,6 +74,3 @@ Compile and run file
 [] write unit tests
 
 
-## Known bugs 
-
-[] hard drop is flaky
