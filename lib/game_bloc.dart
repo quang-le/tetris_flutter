@@ -64,7 +64,6 @@ class GameBloc {
   Move moves = Move();
   StreamSubscription gameStart;
   StreamSubscription isGamePaused;
-  // StreamSubscription isRotating;
   StreamSubscription ghostPieceUpdate;
   StreamSubscription hardDropListener;
 
@@ -83,7 +82,6 @@ class GameBloc {
   var _gameOver = StreamedValue<bool>()..inStream(false);
   var _gameStart = StreamedValue<bool>()..inStream(true);
   var _pauseGame = StreamedValue<bool>()..value = false;
-  var _enableGesture = StreamedValue<bool>()..value = true;
   var _blockType = StreamedValue<BlockType>();
   var _center = StreamedList<int>()
     ..value = ([
@@ -97,7 +95,6 @@ class GameBloc {
   Stream<BlockType> get blockType => _blockType.outStream;
 
   Stream<bool> get gameOver => _gameOver.outStream;
-  Stream<bool> get enableGesture => _enableGesture.outStream;
   Function get findCell => moves.findCell;
 
   void startGame() {
@@ -213,7 +210,6 @@ class GameBloc {
   void hardDrop() {
     cancelHorizontalUserInput();
     _hardDrop.value = true;
-    //_enableGesture.value = false;
   }
 
   void userInputRotate() {
@@ -508,7 +504,6 @@ class GameBloc {
             await Future.delayed(Duration(milliseconds: 2000));
             clearLines(fullLines);
           }
-          // _enableGesture.value = true;
         }
         _landed.value = false;
       }

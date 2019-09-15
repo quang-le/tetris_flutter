@@ -30,49 +30,41 @@ class _BoardState extends State<Board> {
     super.initState();
   }
 
-  // TODO add gesture detector
   @override
   Widget build(BuildContext context) {
     return Container(
       height: widget.height,
       width: widget.width,
-      child: StreamedWidget(
-          stream: bloc.enableGesture,
-          builder: (context, gestureSnapshot) {
-            return GestureDetector(
-              onHorizontalDragUpdate: (details) {
-                if (details.delta.dx > 0) {
-                  bloc.userInputRight();
-                } else if (details.delta.dx < 0) {
-                  bloc.userInputLeft();
-                }
-              },
-              onHorizontalDragEnd: (details) {
-                bloc.cancelHorizontalUserInput();
-              },
-              onVerticalDragUpdate: gestureSnapshot.data
-                  ? (details) {
-                      dropPieces(details);
-                    }
-                  : (details) {},
-              onVerticalDragEnd: (details) {
-                bloc.cancelVerticalUserInput();
-                if (dragUp) {
-                  bloc.hardDrop();
-                  setState(() {
-                    dragUp = false;
-                  });
-                }
-                print('VERTICALDRAGEND');
-              },
-              onTap: () {
-                bloc.userInputRotate();
-              },
-              child: Column(
-                children: _gameGrid(context, 10, 20),
-              ),
-            );
-          }),
+      child: GestureDetector(
+        onHorizontalDragUpdate: (details) {
+          if (details.delta.dx > 0) {
+            bloc.userInputRight();
+          } else if (details.delta.dx < 0) {
+            bloc.userInputLeft();
+          }
+        },
+        onHorizontalDragEnd: (details) {
+          bloc.cancelHorizontalUserInput();
+        },
+        onVerticalDragUpdate: (details) {
+          dropPieces(details);
+        },
+        onVerticalDragEnd: (details) {
+          bloc.cancelVerticalUserInput();
+          if (dragUp) {
+            bloc.hardDrop();
+            setState(() {
+              dragUp = false;
+            });
+          }
+        },
+        onTap: () {
+          bloc.userInputRotate();
+        },
+        child: Column(
+          children: _gameGrid(context, 10, 20),
+        ),
+      ),
     );
   }
 
@@ -100,12 +92,11 @@ class _BoardState extends State<Board> {
     return Row(children: result);
   }
 
+  // Use state to trigger hard drop only on drag end
   void dropPieces(DragUpdateDetails details) {
     if (details.delta.dy > 0) {
-      print('swipe down');
       bloc.fastFall();
     } else if (details.delta.dy < 0) {
-      print('swipe up');
       setState(() {
         dragUp = true;
       });
