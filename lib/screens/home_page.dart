@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tetris/screens/game_screen.dart';
 
 class HomePage extends StatelessWidget {
   @override
@@ -24,6 +25,7 @@ class HomePage extends StatelessWidget {
                 child: Text('Start'),
                 onPressed: () {
                   //print(Grid.grid);
+                  _goToGame(context);
                 },
               ),
               SizedBox(height: 8),
@@ -37,5 +39,11 @@ class HomePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // TODO: use proper navigator
+  void _goToGame(BuildContext context) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (context) => GameScreen()));
   }
 }

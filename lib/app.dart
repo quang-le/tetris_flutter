@@ -14,8 +14,8 @@ class _AppState extends State<App> {
     return MaterialApp(
       title: 'Flutter Tetris',
       theme: ThemeData.dark(),
-      //home: HomePage(),
-      home: GameScreen(),
+      home: HomePage(),
+      //home: GameScreen(),
     );
   }
 }

@@ -100,8 +100,6 @@ class Tetriminos {
     return center;
   }
 
-  static rotateI(int spinPosition) {}
-
   static Matrix2 leftMatrix = Matrix2.fromList([0, -1, 1, 0]);
   static Matrix2 rightMatrix = Matrix2.fromList([0, 1, -1, 0]);
 

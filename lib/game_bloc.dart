@@ -22,7 +22,7 @@ class GameBloc {
       gameLoop(gameSpeed);
     });
 
-    ghostPieceUpdate = _ghostPieceShoudlUpdate.outStream.listen((update) {
+    ghostPieceUpdate = _ghostPieceShouldUpdate.outStream.listen((update) {
       if (update) {
         _updateGhostPiece();
       }
@@ -78,9 +78,9 @@ class GameBloc {
   var _fastDrop = StreamedValue<bool>()..value = false;
   var _hardDrop = StreamedValue<bool>()..value = false;
   var _isRotating = StreamedValue<bool>()..inStream(false);
-  var _ghostPieceShoudlUpdate = StreamedValue<bool>()..inStream(false);
-  var _gameOver = StreamedValue<bool>()..inStream(false);
-  var _gameStart = StreamedValue<bool>()..inStream(true);
+  var _ghostPieceShouldUpdate = StreamedValue<bool>()..inStream(false);
+  var _gameOver = StreamedValue<bool>()..value = true;
+  var _gameStart = StreamedValue<bool>()..value = false;
   var _pauseGame = StreamedValue<bool>()..value = false;
   var _blockType = StreamedValue<BlockType>();
   var _center = StreamedList<int>()
@@ -98,6 +98,7 @@ class GameBloc {
   Function get findCell => moves.findCell;
 
   void startGame() {
+    _gameOver.value = false;
     _gameStart.value = true;
     return;
   }
@@ -116,9 +117,10 @@ class GameBloc {
     return;
   }
 
+  // TODO refactor out of BloC (-> Tetrimino)
   void addPiece() {
     _tetrimino.value = Tetriminos.coordinates(_blockType.value);
-
+    //TODO: check if lines 19 and 20 are empty, if so: spawn from line 20, if not spawn from further up
     _tetrimino.value
         .forEach((cell) => _updateCell(cell, _blockType.value, _grid.value));
     _center.value = Tetriminos.setCenter(_blockType.value);
@@ -428,6 +430,8 @@ class GameBloc {
     while (_gameOver.value == false) {
       /// Game pause
       if (!_pauseGame.value) {
+        // TODO make newBlock array so next piece can be displayed. push and pop pieces as game progresses
+        // TODO put it all in a function or a stream so it can be called when swapping with stored piece
         var newBlock = randomizer.choosePiece();
         _blockType.value = newBlock;
         addPiece();
@@ -462,15 +466,15 @@ class GameBloc {
                   if (_isRotating.value) {
                     rotate(Direction.left);
                     _isRotating.value = false;
-                    _ghostPieceShoudlUpdate.value = true;
+                    _ghostPieceShouldUpdate.value = true;
                   }
                   if (_goLeft.value) {
                     moveLeft();
-                    _ghostPieceShoudlUpdate.value = true;
+                    _ghostPieceShouldUpdate.value = true;
                   }
                   if (_goRight.value) {
                     moveRight();
-                    _ghostPieceShoudlUpdate.value = true;
+                    _ghostPieceShouldUpdate.value = true;
                   }
                   checkContactBelow();
                 }

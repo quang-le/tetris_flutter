@@ -1,11 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:tetris/board/board.dart';
+import 'package:tetris/game_bloc.dart';
 import 'package:tetris/provider.dart';
 
-class GameScreen extends StatelessWidget {
+class GameScreen extends StatefulWidget {
+  @override
+  _GameScreenState createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  GameBloc bloc;
+  StreamSubscription gameOverListen;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    bloc = Provider.of(context).gameBloc;
+    bloc.startGame();
+    gameOverListen = bloc.gameOver.listen((isGameOver) {
+      if (isGameOver) {
+        // TODO toggle game over screen
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    gameOverListen.cancel();
+  }
+
   @override
   Widget build(BuildContext context) {
-    var bloc = Provider.of(context).gameBloc;
     var width = MediaQuery.of(context).size.width;
     var height = MediaQuery.of(context).size.height;
     return SafeArea(
