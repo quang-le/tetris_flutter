@@ -35,11 +35,18 @@ Compile and run file
 
 [x] pause game
 
-[] store and swap piece
-
 [] display next pieces
 
+[] store and swap piece
+
+[] change fall speed
+
+[] toggle rotation direction
+
+
 ## UX features
+
+[] adjust piece spawn position to puzzle height
 
 [] background music
 
@@ -51,7 +58,7 @@ Compile and run file
 
 [] themes
 
-[] start screen
+[x] start screen
 
 [] settings screen
 
@@ -59,6 +66,7 @@ Compile and run file
 
 [] toggle ghost piece
 
+[] game over screen
 
 
 ## Other improvements
