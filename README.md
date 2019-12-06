@@ -81,4 +81,7 @@ Compile and run file
 
 [] write unit tests
 
+[] Refactor proper Tetrimino class with named constructors
+
+[] use mixins
 

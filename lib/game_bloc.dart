@@ -364,6 +364,7 @@ class GameBloc {
   }
 
 // TODO get width and height from widget i.o. hard coded in function
+  // TODO REFACTOR: pass line length to check against controlLine and save the creation of Line
   List<Map<List<int>, BlockType>> checkFullLines(
       Map<List<int>, BlockType> grid) {
     Map<List<int>, BlockType> clonedGrid = Map<List<int>, BlockType>.from(grid);
@@ -408,6 +409,7 @@ class GameBloc {
         yCoordinate.add(coordinateToAdd);
       });
       yCoordinate.sort();
+      //TODO refactor to avoid nested loop
       // for each coordinate, replace the blockType by the type of the block above
       for (var i = yCoordinate.length - 1; i >= 0; i--) {
         for (var j = yCoordinate[i]; j < 21; j++) {
@@ -439,6 +441,7 @@ class GameBloc {
         _checkGhostPieceContact();
         while (_landed.value == false) {
           /// Game pause
+          /// This if statement might create bug when pausing
           if (!_pauseGame.value) {
             stopwatchFall.start();
             while (stopwatchFall.elapsedMilliseconds < fallSpeed &&

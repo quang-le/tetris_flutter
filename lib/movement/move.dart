@@ -106,7 +106,7 @@ class Move {
   ///END
 
   // TODO change name to account for return type
-  // TODO refactor to avoid changing tetrimino directly
+  // TODO REFACTOR to avoid changing tetrimino directly
   List<List<int>> detectCollisionAndUpdateCoordinates(
       List<List<int>> tetrimino,
       List<List<int>> initialTetriminoPosition,
