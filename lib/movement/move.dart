@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:tetris/game_bloc.dart';
-import 'package:tetris/tetriminos/tetriminos.dart';
 import 'package:vector_math/vector_math.dart';
 
 class Move {
@@ -231,18 +230,69 @@ class Move {
     //var matrix = Tetriminos.leftMatrix;
     //var tetrimino = _tetrimino.value;
     if (center.isNotEmpty) {
-      var offSetBlocks = Tetriminos.centerCoordinatesOnCell(center, tetrimino);
-      var vectorTetrimino = Tetriminos.convertListToVector(offSetBlocks);
+      var offSetBlocks = _centerCoordinatesOnCell(center, tetrimino);
+      var vectorTetrimino = _convertListToVector(offSetBlocks);
       vectorTetrimino.forEach((cell) {
         cell.postmultiply(matrix);
         print("rotated cell: $cell");
       });
-      var updatedCoordinates = Tetriminos.convertVectorToList(vectorTetrimino);
+      var updatedCoordinates = _convertVectorToList(vectorTetrimino);
       var updatedCoordinatesOnGrid =
-          Tetriminos.convertCoordinatesToGrid(center, updatedCoordinates);
+          _convertCoordinatesToGrid(center, updatedCoordinates);
       return updatedCoordinatesOnGrid;
     }
     return tetrimino;
+  }
+
+  List<List<int>> _centerCoordinatesOnCell(
+      List<int> center, List<List<int>> tetrimino) {
+    List<List<int>> centeredCoordinates = [];
+    tetrimino.forEach((cell) {
+      List<int> offSetCoordinates = [
+        (cell[0] - center[0]),
+        (cell[1] - center[1])
+      ];
+      centeredCoordinates.add(offSetCoordinates);
+    });
+    return centeredCoordinates;
+  }
+
+  List<List<int>> _convertCoordinatesToGrid(
+      List<int> center, List<List<int>> rotatedTetrimino) {
+    List<List<int>> tetriminoOnGrid = [];
+    rotatedTetrimino.forEach((cell) {
+      List<int> gridCell = [];
+      int gridCellX = cell[0] + center[0];
+      gridCell.add(gridCellX);
+      int gridCellY = cell[1] + center[1];
+      gridCell.add(gridCellY);
+      tetriminoOnGrid.add(gridCell);
+    });
+    return tetriminoOnGrid;
+  }
+
+  List<Vector2> _convertListToVector(List<List<int>> tetrimino) {
+    List<Vector2> vectorCoordinates = [];
+    tetrimino.forEach((cell) {
+      List<double> toDouble = [cell[0].toDouble(), cell[1].toDouble()];
+      Vector2 vector = Vector2.array(toDouble);
+      vectorCoordinates.add(vector);
+    });
+    return vectorCoordinates;
+  }
+
+  List<List<int>> _convertVectorToList(List<Vector2> vectors) {
+    List<List<int>> list = [];
+    vectors.forEach((vector) {
+      List<double> vectorToArray = [0, 0];
+      vector.copyIntoArray(vectorToArray);
+      List<int> doubleToInt = [
+        vectorToArray[0].toInt(),
+        vectorToArray[1].toInt()
+      ];
+      list.add(doubleToInt);
+    });
+    return list;
   }
 
   List<int> _updateCenter(

@@ -7,7 +7,7 @@ import 'package:tetris/movement/move.dart';
 import 'package:tetris/randomizer.dart';
 import 'package:tetris/tetriminos/tetriminos.dart';
 
-class GameBloc {
+class GameBloc with Tetriminos, Move {
   GameBloc() {
     _isLocking.stream.listen((locking) {
       if (locking) {
@@ -61,7 +61,6 @@ class GameBloc {
   var randomizer = Randomizer();
   var compareList = IterableEquality();
   var mapCompare = MapEquality();
-  Move moves = Move();
   StreamSubscription gameStart;
   StreamSubscription isGamePaused;
   StreamSubscription ghostPieceUpdate;
@@ -95,7 +94,6 @@ class GameBloc {
   Stream<BlockType> get blockType => _blockType.outStream;
 
   Stream<bool> get gameOver => _gameOver.outStream;
-  Function get findCell => moves.findCell;
 
   void startGame() {
     _gameOver.value = false;
@@ -119,11 +117,11 @@ class GameBloc {
 
   // TODO refactor out of BloC (-> Tetrimino)
   void addPiece() {
-    _tetrimino.value = Tetriminos.coordinates(_blockType.value);
+    _tetrimino.value = coordinates(_blockType.value);
     //TODO: check if lines 19 and 20 are empty, if so: spawn from line 20, if not spawn from further up
     _tetrimino.value
         .forEach((cell) => _updateCell(cell, _blockType.value, _grid.value));
-    _center.value = Tetriminos.setCenter(_blockType.value);
+    _center.value = setCenter(_blockType.value);
     return;
   }
 
@@ -223,17 +221,17 @@ class GameBloc {
     if (_center.value.isNotEmpty) {
       List<List<int>> updatedCoordinatesOnGrid = [];
       if (direction == Direction.left) {
-        updatedCoordinatesOnGrid = moves.obtainRotatedCoordinates(
-            _center.value, Tetriminos.leftMatrix, _tetrimino.value);
+        updatedCoordinatesOnGrid = obtainRotatedCoordinates(
+            _center.value, leftMatrix, _tetrimino.value);
       } else {
-        updatedCoordinatesOnGrid = moves.obtainRotatedCoordinates(
-            _center.value, Tetriminos.rightMatrix, _tetrimino.value);
+        updatedCoordinatesOnGrid = obtainRotatedCoordinates(
+            _center.value, rightMatrix, _tetrimino.value);
       }
       // keep copy of old coordinates for clearing display
       var cellsToRemove = List<List<int>>.from(_tetrimino.value);
 
       // Wall detection
-      updatedCoordinatesOnGrid = moves.detectCollisionAndUpdateCoordinates(
+      updatedCoordinatesOnGrid = detectCollisionAndUpdateCoordinates(
           updatedCoordinatesOnGrid,
           _tetrimino.value,
           _grid.value,
@@ -281,34 +279,33 @@ class GameBloc {
   }
 
   void checkContactOnSide() {
-    var reachLeftLimit = moves.reachLeftLimit(_tetrimino.value);
-    var reachRightLimit = moves.reachRightLimit(_tetrimino.value);
-    var reachBlockOnLeft =
-        moves.reachBlockOnLeft(_tetrimino.value, _grid.value);
-    var reachBlockOnRight =
-        moves.reachBlockOnRight(_tetrimino.value, _grid.value);
+    var hasReachedLeftLimit = reachLeftLimit(_tetrimino.value);
+    var hasReachedRightLimit = reachRightLimit(_tetrimino.value);
+    var hasReachedBlockOnLeft = reachBlockOnLeft(_tetrimino.value, _grid.value);
+    var hasReachedBlockOnRight =
+        reachBlockOnRight(_tetrimino.value, _grid.value);
 
-    if (reachLeftLimit.isNotEmpty || reachBlockOnLeft.isNotEmpty) {
+    if (hasReachedLeftLimit.isNotEmpty || hasReachedBlockOnLeft.isNotEmpty) {
       _goLeft.value = false;
     }
 
-    if (reachRightLimit.isNotEmpty || reachBlockOnRight.isNotEmpty) {
+    if (hasReachedRightLimit.isNotEmpty || hasReachedBlockOnRight.isNotEmpty) {
       _goRight.value = false;
     }
   }
 
   void checkContactBelow() {
-    var reachBottom = moves.reachBottom(_tetrimino.value);
-    var reachTop = moves.reachTop(_tetrimino.value, _grid.value);
-    var reachOtherBlock = moves.reachOtherBlock(_tetrimino.value, _grid.value);
+    var hasReachedBottom = reachBottom(_tetrimino.value);
+    var hasReachedTop = reachTop(_tetrimino.value, _grid.value);
+    var hasReachedOtherBlock = reachOtherBlock(_tetrimino.value, _grid.value);
 
-    if (reachTop.isNotEmpty) {
+    if (hasReachedTop.isNotEmpty) {
       _gameOver.value = true;
       print('++++++++++++++++++++GAME OVER+++++++++++++++++++++');
       return;
     }
 
-    if (reachBottom.isNotEmpty || reachOtherBlock.isNotEmpty) {
+    if (hasReachedBottom.isNotEmpty || hasReachedOtherBlock.isNotEmpty) {
       if (!_isLocking.value) {
         _isLocking.value = true;
         return;
@@ -321,10 +318,10 @@ class GameBloc {
 
   void _checkGhostPieceContact() {
     print('checking contact');
-    var reachBottom = moves.reachBottom(_ghostPiece.value);
-    var reachOtherBlock = moves.reachOtherBlock(_ghostPiece.value, _grid.value);
+    var hasReachedBottom = reachBottom(_ghostPiece.value);
+    var hasReachedOtherBlock = reachOtherBlock(_ghostPiece.value, _grid.value);
 
-    if (reachBottom.isEmpty && reachOtherBlock.isEmpty) {
+    if (hasReachedBottom.isEmpty && hasReachedOtherBlock.isEmpty) {
       _updatePositionInStream(Direction.down, _ghostPiece);
       _checkGhostPieceContact();
     } else {
@@ -341,7 +338,7 @@ class GameBloc {
   List<List<int>> _updatePositionInStream(
       Direction direction, StreamedList<List<int>> stream) {
     stream.value.forEach((cell) {
-      List<int> newCell = moves.determineMovementValues(direction, cell);
+      List<int> newCell = determineMovementValues(direction, cell);
       stream.replace(cell, newCell);
       stream.refresh();
     });
